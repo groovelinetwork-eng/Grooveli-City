@@ -1,0 +1,25 @@
+{
+  "name": "grooveli-city",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "lint": "turbo lint",
+    "dev:web": "turbo dev --filter=@grooveli/web",
+    "dev:city": "turbo dev --filter=@grooveli/city",
+    "dev:api": "turbo dev --filter=@grooveli/api",
+    "dev:frontend": "turbo dev --filter=@grooveli/web --filter=@grooveli/city",
+    "build:frontend": "turbo build --filter=@grooveli/web --filter=@grooveli/city",
+    "build:backend": "turbo build --filter=@grooveli/api"
+  },
+  "devDependencies": {
+    "turbo": "^2.3.0",
+    "typescript": "^5.7.0"
+  },
+  "packageManager": "pnpm@11.5.1",
+  "engines": {
+    "node": ">=20"
+  }
+}
+
