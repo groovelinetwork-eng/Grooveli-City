@@ -7,10 +7,7 @@
     "rootDir": "./src",
     "lib": ["ES2022"],
     "emitDecoratorMetadata": true,
-    "experimentalDecorators": true,
-    "paths": {
-      "@grooveli/shared": ["../../packages/shared/src"]
-    }
+    "experimentalDecorators": true
   },
   "include": ["src"],
   "exclude": ["node_modules", "dist"]
