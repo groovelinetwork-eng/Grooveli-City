@@ -1,0 +1,80 @@
+/* Grooveli shared brand tokens — consumed by frontend/web and frontend/city.
+   Palette follows the supplied city references: deep navy panels, cyan accents,
+   with a violet brand secondary. High-contrast text for DOM UI. */
+:root {
+  --g-navy-950: #070d1f;
+  --g-navy-900: #0b1530;
+  --g-navy-800: #12204a;
+  --g-navy-700: #1b2d63;
+  --g-cyan-500: #22d3ee;
+  --g-cyan-400: #4fe0f5;
+  --g-cyan-600: #0891b2;
+  --g-violet-600: #6d28d9;
+  --g-violet-500: #7c3aed;
+  --g-violet-100: #ede9fe;
+  --g-amber-400: #fbbf24;
+  --g-green-600: #15803d;
+  --g-red-600: #dc2626;
+
+  --g-bg: #f5f7fb;
+  --g-surface: #ffffff;
+  --g-surface-2: #eef2f8;
+  --g-border: #d7deea;
+  --g-text: #0f172a;
+  --g-text-muted: #475569;
+  --g-primary: #4f2fd8;
+  --g-primary-strong: #3b1fb8;
+  --g-primary-contrast: #ffffff;
+  --g-accent: #0e7490;
+  --g-success: #15803d;
+  --g-warning: #b45309;
+  --g-danger: #b91c1c;
+  --g-mock: #9a3412;
+  --g-mock-bg: #fff7ed;
+  --g-focus: #0ea5e9;
+
+  --g-radius-sm: 6px;
+  --g-radius: 10px;
+  --g-radius-lg: 16px;
+  --g-shadow: 0 1px 2px rgb(15 23 42 / 6%), 0 4px 16px rgb(15 23 42 / 6%);
+  --g-font: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --g-font-display: 'Space Grotesk', 'Inter', system-ui, sans-serif;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) {
+    --g-bg: #0a1022;
+    --g-surface: #111a33;
+    --g-surface-2: #172344;
+    --g-border: #26365f;
+    --g-text: #e8eefc;
+    --g-text-muted: #a7b4d4;
+    --g-primary: #8b74ff;
+    --g-primary-strong: #a493ff;
+    --g-primary-contrast: #0b1020;
+    --g-accent: #4fe0f5;
+    --g-success: #4ade80;
+    --g-warning: #fbbf24;
+    --g-danger: #f87171;
+    --g-mock: #fdba74;
+    --g-mock-bg: #2a1a0e;
+  }
+}
+
+:root[data-theme='dark'] {
+  --g-bg: #0a1022;
+  --g-surface: #111a33;
+  --g-surface-2: #172344;
+  --g-border: #26365f;
+  --g-text: #e8eefc;
+  --g-text-muted: #a7b4d4;
+  --g-primary: #8b74ff;
+  --g-primary-strong: #a493ff;
+  --g-primary-contrast: #0b1020;
+  --g-accent: #4fe0f5;
+  --g-success: #4ade80;
+  --g-warning: #fbbf24;
+  --g-danger: #f87171;
+  --g-mock: #fdba74;
+  --g-mock-bg: #2a1a0e;
+}
