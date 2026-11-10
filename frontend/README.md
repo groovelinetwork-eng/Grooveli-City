@@ -1,5 +1,23 @@
 # Grooveli City — Full Frontend Monorepo Handoff v3
-**Status:** architecture aligned to the team's repository layout, 2026-11-09. No code started. Full frontend scope approved. This is documentation, not application source code.
+**Status (2026-11-09):** full first-build frontend implemented across `frontend/web`, `frontend/city` and the shared `frontend/domain` package, using synthetic mock adapters. See `docs/IMPLEMENTATION_STATUS.md` for what is real vs simulated.
+
+## Running the frontend
+```bash
+pnpm install
+pnpm dev:frontend      # web :3000 + city :3001 (city also proxied at :3000/city)
+pnpm dev:web           # http://localhost:3000
+pnpm dev:city          # http://localhost:3001/city/
+```
+Sign in at `/login` with any **demo persona** (candidate, organisation admin, HR manager, recruiter, payroll officer, employee). All data is synthetic and stored in the browser; reset it from Settings.
+
+| Package | Checks |
+|---|---|
+| `@grooveli/frontend-domain` | `pnpm --filter @grooveli/frontend-domain test` · `typecheck` |
+| `@grooveli/web` | `pnpm --filter @grooveli/web typecheck` · `lint` · `test` · `build` |
+| `@grooveli/city` | `pnpm --filter @grooveli/city typecheck` · `lint` · `test` · `build` (includes the private-data bundle check) |
+| `@grooveli/frontend-e2e` | build web and city, run `pnpm --filter @grooveli/frontend-e2e install-browsers` once, then `pnpm --filter @grooveli/frontend-e2e test` |
+
+Configuration values are all public; never put secrets in them. Web: `frontend/web/.env.example` (`NEXT_PUBLIC_DATA_MODE=mock|api`, `NEXT_PUBLIC_CITY_URL`). City: `frontend/city/.env.example` (`VITE_WEB_URL`, `VITE_DATA_MODE`). `api` mode fails visibly until backend endpoints exist. City URL options: `?district=<id>`, `?org=<id>`, `?renderer=2d` (accessible directory).
 
 ## Repository contract (do not flatten)
 ```

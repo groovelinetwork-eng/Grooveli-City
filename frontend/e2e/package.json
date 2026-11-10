@@ -1,0 +1,13 @@
+{
+  "name": "@grooveli/frontend-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Cross-app Playwright journeys for @grooveli/web (:3000) and @grooveli/city (:3001).",
+  "scripts": {
+    "test": "playwright test",
+    "install-browsers": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0"
+  }
+}
