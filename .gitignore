@@ -5,6 +5,12 @@ node_modules/
 dist/
 .next/
 out/
+#Docs and Markdown files
+docs/
+claude.md
+source_documents
+references
+FIRST_BUILD_PROMPT.md
 
 # Turbo
 .turbo/
