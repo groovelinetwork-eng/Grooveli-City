@@ -1,4 +1,6 @@
 import { useState, type ReactNode } from 'react';
+import { formatPrice } from '../services/markets';
+import type { MarketFeedState } from '../services/useMarketFeed';
 import { DISTRICTS, PUBLIC_TOP_JOBS, SKILL_CHALLENGES, formatDate, formatDateTime, getDistrict, type CityEvent, type CityIntent, type DistrictId, type OrgArea, type PresenceProjection, type PublicHqProjection } from '@grooveli/frontend-domain/public';
 import { webHref, type CitySettings } from '../app/settings';
 import { cityConfig } from '../app/config';
@@ -658,15 +660,59 @@ export function SettingsPanel({ settings, onChange, onClose, onDirectory }: { se
   );
 }
 
-/** Global Markets billboard when no market charts destination is configured. */
-export function MarketsPanel({ onClose }: { onClose: () => void }) {
+/** Global Markets: accessible view of the board's figures (same feed), plus link status. */
+export function MarketsPanel({ feed, onClose }: { feed: MarketFeedState; onClose: () => void }) {
+  const s = feed.snapshot;
+  const status =
+    feed.status === 'loading'
+      ? 'Loading…'
+      : s?.simulated
+        ? 'Simulated demo data'
+        : s?.delayedMinutes
+          ? `Live feed · delayed ${s.delayedMinutes} min`
+          : 'Live feed · real time';
   return (
-    <Panel title="Global Markets" subtitle={<SimTag>board figures are simulated</SimTag>} onClose={onClose}>
-      <p>The market charts link for this billboard hasn&apos;t been set up yet.</p>
-      <p className="small muted">
-        The tickers on the board (GRO, KST, ORB, CPL) are fictional and only decorate the city. Once a market charts website is approved, it will open
-        from here in a new tab.
-      </p>
+    <Panel title="Global Markets" subtitle={s?.simulated || !s ? <SimTag>{status}</SimTag> : status} onClose={onClose}>
+      {s ? (
+        <>
+          <table className="markets-table">
+            <caption className="sr-only">Market figures shown on the Global Markets billboard</caption>
+            <thead>
+              <tr>
+                <th scope="col">Symbol</th>
+                <th scope="col">Name</th>
+                <th scope="col">Price</th>
+                <th scope="col">Change</th>
+              </tr>
+            </thead>
+            <tbody>
+              {s.quotes.map((q) => (
+                <tr key={q.symbol}>
+                  <th scope="row">{q.symbol}</th>
+                  <td>{q.name}</td>
+                  <td>
+                    {formatPrice(q.price)} <span className="muted small">{q.currency}</span>
+                  </td>
+                  <td className={q.changePct > 0 ? 'up' : q.changePct < 0 ? 'down' : undefined}>
+                    {q.changePct > 0 ? '+' : ''}
+                    {q.changePct.toFixed(2)}%
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="small muted">
+            As of {formatDateTime(s.asOf)} · {s.attribution || s.source}
+          </p>
+        </>
+      ) : (
+        <p className="muted">Loading market data…</p>
+      )}
+      {feed.status === 'fallback' ? <p className="small">The live market feed is unavailable right now, so the board shows simulated figures.</p> : null}
+      {s?.simulated ? (
+        <p className="small muted">These figures come from Grooveli&apos;s built-in demo feed for fictional companies. They change over time but are not real market prices.</p>
+      ) : null}
+      <p className="small muted">The market charts website for this billboard hasn&apos;t been set up yet.</p>
     </Panel>
   );
 }

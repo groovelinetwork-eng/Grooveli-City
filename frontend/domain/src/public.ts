@@ -41,6 +41,7 @@ export {
 } from './projections';
 export { formatDate, formatDateTime, initials } from './format';
 export { progressFromXp } from './xp';
+export { parseMarketSnapshot, marketSnapshotSchema, type MarketSnapshot, type MarketQuote } from './markets';
 
 /**
  * Pre-computed public HQ projections for every organisation, built through

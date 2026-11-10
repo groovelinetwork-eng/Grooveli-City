@@ -24,3 +24,4 @@ export * from './fixtures/compensation';
 export * from './fixtures/recruitment';
 export * from './fixtures/career';
 export * from './fixtures/social';
+export * from './markets';

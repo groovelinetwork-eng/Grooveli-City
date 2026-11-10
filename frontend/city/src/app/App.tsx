@@ -7,6 +7,8 @@ import type { InteriorKind, Station } from './interiors';
 import { parseLaunchParams, readBridge, resolveIdentity } from '../services/identity';
 import { buildWorldData } from '../services/world-data';
 import { SimulatedPresenceAdapter } from '../services/presence';
+import { createMarketsAdapter, marketsBoardModel } from '../services/markets';
+import { useMarketFeed } from '../services/useMarketFeed';
 import { QUALITY } from '../world/ambient';
 import { INTERACTABLES, PLACED_BUILDINGS, districtAt, districtKiosk, spawnPoint, type CityFeatureId, type Interactable, type PlacedBuilding, type Vec2 } from '../world/layout';
 import { nearestInteractable } from '../world/movement';
@@ -87,6 +89,9 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
   const view = useRef(createCityView());
   const [assistName, setAssistName] = useState<string | null>(null);
   const [featurePulse, setFeaturePulse] = useState(0);
+  const marketsAdapter = useMemo(() => createMarketsAdapter(cityConfig.marketsFeedUrl), []);
+  const marketFeed = useMarketFeed(marketsAdapter, cityConfig.marketsRefreshMs, !fallback);
+  const marketsModel = useMemo(() => (marketFeed.snapshot ? marketsBoardModel(marketFeed.snapshot, { fallback: marketFeed.status === 'fallback' }) : null), [marketFeed]);
   const [opened, setOpened] = useState<string | null>(null);
 
   const setSettings = (s: CitySettings) => {
@@ -316,6 +321,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               onAssist={onAssist}
               featurePulse={featurePulse}
               onFeature={activateFeature}
+              markets={marketsModel}
             />
           </Suspense>
         </SceneBoundary>
@@ -413,7 +419,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setOverlay(null)} onDirectory={() => setFallback('Directory view (2D) selected.')} />
         ) : null}
         {overlay?.kind === 'help' ? <HelpPanel onClose={() => setOverlay(null)} /> : null}
-        {overlay?.kind === 'markets' ? <MarketsPanel onClose={() => setOverlay(null)} /> : null}
+        {overlay?.kind === 'markets' ? <MarketsPanel feed={marketFeed} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'notifications' ? <NotificationsPanel events={data.events} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'menu' ? (
           <MenuPanel
