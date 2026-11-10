@@ -14,6 +14,7 @@ import type { Quality } from '../world/ambient';
 import type { CityFeatureId, PlacedBuilding, Vec2 } from '../world/layout';
 import type { InteriorKind, Station } from '../app/interiors';
 import type { AiVisitor } from './ai/aiTextures';
+import type { BoardModel } from '../services/markets';
 
 export interface CityCanvasProps {
   avatar: AvatarConfig;
@@ -42,6 +43,7 @@ export interface CityCanvasProps {
   onAssist?: (entrance: string | null) => void;
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
+  markets: BoardModel | null;
 }
 
 /** Dev-only render statistics for performance checks (window.__grooveliRender). */
@@ -128,6 +130,7 @@ export default function CityCanvas(props: CityCanvasProps) {
               nightLights={quality.level === 'high' ? 6 : quality.level === 'medium' ? 4 : 0}
               featurePulse={props.featurePulse}
               onFeature={props.onFeature}
+              markets={props.markets}
             />
             <Ambient pedestrians={quality.pedestrians} vehicles={quality.vehicles} reducedMotion={props.reducedMotion} night={night} />
             <PresenceAvatars people={props.people} labels={props.labels} labelPortal={labelLayer} player={props.player} />

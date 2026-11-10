@@ -11,6 +11,7 @@ import { Plaza } from './city/Plaza';
 import { Building } from './city/Buildings';
 import { Props } from './city/Props';
 import { NightLights } from './city/NightLights';
+import type { BoardModel } from '../services/markets';
 
 /** District info totem (the plaza's kiosk is its glowing central disc instead). */
 function Kiosk({ color, night }: { color: string; night: boolean }) {
@@ -48,6 +49,7 @@ export function Environment({
   nightLights,
   featurePulse,
   onFeature,
+  markets,
 }: {
   night: boolean;
   labels: boolean;
@@ -66,6 +68,7 @@ export function Environment({
   nightLights: number;
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
+  markets: BoardModel | null;
 }) {
   const props = useMemo(buildCityProps, []);
   const beacon = useRef<THREE.Group>(null);
@@ -91,6 +94,7 @@ export function Environment({
           featureNear={b.id === 'b-tech-tower' && nearbyId === 'markets-board'}
           featurePulse={b.id === 'b-tech-tower' ? featurePulse : 0}
           onFeature={onFeature}
+          markets={b.id === 'b-tech-tower' ? markets : undefined}
         />
       ))}
       <Props props={props} night={night} density={density} />

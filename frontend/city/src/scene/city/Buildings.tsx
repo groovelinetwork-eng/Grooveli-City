@@ -3,6 +3,7 @@ import type { ThreeEvent } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import type { LabelPortal } from '../labels';
+import type { BoardModel } from '../../services/markets';
 import { SIDEWALK_H, type PlacedBuilding, type Vec2, type CityFeatureId } from '../../world/layout';
 import {
   careersSign,
@@ -12,7 +13,7 @@ import {
   hospitalSign,
   hqBillboard,
   jobBillboardWide,
-  marketsBoard,
+  drawMarketsBoard,
   nameSign,
   punchedTile,
   nightEmissive,
@@ -155,9 +156,27 @@ function GlassOffice({ b, night, billboard }: { b: PlacedBuilding; night: boolea
  * highlight, pointer cursor, click; the avatar's E prompt is handled by App via
  * the 'markets-board' interactable). `pulse` changes on every activation.
  */
-function Markets({ b, night, near, pulse, onFeature }: { b: PlacedBuilding; night: boolean; near: boolean; pulse: number; onFeature?: (id: CityFeatureId) => void }) {
+function Markets({ b, night, near, pulse, onFeature, markets }: { b: PlacedBuilding; night: boolean; near: boolean; pulse: number; onFeature?: (id: CityFeatureId) => void; markets: BoardModel | null }) {
   const podium = 4.2;
   const upper = b.h - podium;
+  // One canvas/texture for the board's lifetime, repainted from the feed data on every refresh.
+  const boardTex = useMemo(() => {
+    const c = document.createElement('canvas');
+    c.width = 1024;
+    c.height = 512;
+    const t = new THREE.CanvasTexture(c);
+    t.colorSpace = THREE.SRGBColorSpace;
+    t.anisotropy = 4;
+    return t;
+  }, []);
+  useEffect(() => {
+    const c = boardTex.image as HTMLCanvasElement;
+    const g = c.getContext('2d');
+    if (!g) return;
+    drawMarketsBoard(g, c.width, c.height, markets);
+    boardTex.needsUpdate = true;
+  }, [markets, boardTex]);
+  useEffect(() => () => boardTex.dispose(), [boardTex]);
   const [hover, setHover] = useState(false);
   const [flash, setFlash] = useState(false);
   useEffect(() => {
@@ -183,7 +202,7 @@ function Markets({ b, night, near, pulse, onFeature }: { b: PlacedBuilding; nigh
         onFeature?.('markets-board');
       }}
     >
-      <Board map={marketsBoard()} w={b.w * 0.9} h={upper * 0.72} position={[0, podium + upper * 0.44, b.d / 2 + 0.25]} night={night} highlight={hover || near || flash} />
+      <Board map={boardTex} w={b.w * 0.9} h={upper * 0.72} position={[0, podium + upper * 0.44, b.d / 2 + 0.25]} night={night} highlight={hover || near || flash} />
     </group>
   );
   return <GlassOffice b={b} night={night} billboard={board} />;
@@ -541,6 +560,7 @@ export const Building = memo(function Building({
   featureNear = false,
   featurePulse = 0,
   onFeature,
+  markets,
 }: {
   b: PlacedBuilding;
   night: boolean;
@@ -555,6 +575,8 @@ export const Building = memo(function Building({
   /** Increments on each activation of this building's feature (pulse). */
   featurePulse?: number;
   onFeature?: (id: CityFeatureId) => void;
+  /** Global Markets board content (only passed to the markets building). */
+  markets?: BoardModel | null;
 }) {
   if (b.style === 'flat') return null;
   const body = (() => {
@@ -562,7 +584,7 @@ export const Building = memo(function Building({
       case 'glassOffice':
         return <GlassOffice b={b} night={night} billboard={b.id === 'b-kestrel' ? <Board map={hqBillboard('Kestrel Systems')} w={b.w * 0.78} h={(b.h - 4.2) * 0.62} position={[-b.w * 0.04, 4.2 + (b.h - 4.2) * 0.42, b.d / 2 + 0.25]} night={night} /> : null} />;
       case 'markets':
-        return <Markets b={b} night={night} near={featureNear} pulse={featurePulse} onFeature={onFeature} />;
+        return <Markets b={b} night={night} near={featureNear} pulse={featurePulse} onFeature={onFeature} markets={markets ?? null} />;
       case 'hospital':
         return <Hospital b={b} night={night} />;
       case 'signTower':

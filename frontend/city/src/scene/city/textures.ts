@@ -342,6 +342,107 @@ export function hqBillboard(name: string) {
 }
 
 /** Global markets board with a line chart and fictional tickers (labelled simulated). */
+/**
+ * Draws the Global Markets board from a BoardModel (data → pixels). Called
+ * again on every feed refresh into the same canvas. `null` = loading.
+ */
+export function drawMarketsBoard(g: CanvasRenderingContext2D, w: number, h: number, m: import('../../services/markets').BoardModel | null) {
+  const UP = '#4ade80';
+  const DOWN = '#f87171';
+  const FLAT = '#cbd5e1';
+  const col = (t: 'up' | 'down' | 'flat') => (t === 'up' ? UP : t === 'down' ? DOWN : FLAT);
+  g.clearRect(0, 0, w, h);
+  g.fillStyle = '#071735';
+  g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(56,189,248,0.6)';
+  g.lineWidth = 6;
+  g.strokeRect(3, 3, w - 6, h - 6);
+  g.fillStyle = '#e2e8f0';
+  g.font = `700 40px ${FONT}`;
+  g.fillText(m?.title ?? 'GLOBAL MARKETS', 30, 60);
+  if (!m) {
+    g.fillStyle = '#94a3b8';
+    g.font = `600 30px ${FONT}`;
+    g.fillText('Loading market data…', 30, 260);
+    return;
+  }
+  // badge
+  g.font = `700 22px ${FONT}`;
+  const bw = g.measureText(m.badge).width + 28;
+  g.fillStyle = m.badge === 'SIMULATED' ? 'rgba(148,163,184,0.25)' : 'rgba(74,222,128,0.2)';
+  roundRect(g, w - bw - 24, 30, bw, 36, 18);
+  g.fill();
+  g.fillStyle = m.badge === 'SIMULATED' ? '#cbd5e1' : UP;
+  g.fillText(m.badge, w - bw - 10, 56);
+  // chart panel
+  const cx = 30;
+  const cy = 90;
+  const cw = 520;
+  const ch = 350;
+  g.fillStyle = '#0b2350';
+  g.fillRect(cx, cy, cw, ch);
+  g.strokeStyle = 'rgba(148,163,184,0.22)';
+  g.lineWidth = 2;
+  for (let i = 1; i < 5; i++) {
+    g.beginPath();
+    g.moveTo(cx, cy + (i * ch) / 5);
+    g.lineTo(cx + cw, cy + (i * ch) / 5);
+    g.stroke();
+  }
+  if (m.chart) {
+    const pad = 28;
+    const X = (u: number) => cx + 14 + u * (cw - 28);
+    const Y = (v: number) => cy + ch - pad - v * (ch - pad * 2);
+    const c = col(m.chart.trend);
+    // area under the line
+    g.beginPath();
+    m.chart.path.forEach(([u, v], k) => (k ? g.lineTo(X(u), Y(v)) : g.moveTo(X(u), Y(v))));
+    g.lineTo(X(1), cy + ch);
+    g.lineTo(X(0), cy + ch);
+    g.closePath();
+    g.fillStyle = m.chart.trend === 'down' ? 'rgba(248,113,113,0.14)' : 'rgba(74,222,128,0.14)';
+    g.fill();
+    g.beginPath();
+    m.chart.path.forEach(([u, v], k) => (k ? g.lineTo(X(u), Y(v)) : g.moveTo(X(u), Y(v))));
+    g.strokeStyle = c;
+    g.lineWidth = 5;
+    g.stroke();
+    const [lu, lv] = m.chart.path[m.chart.path.length - 1]!;
+    g.fillStyle = c;
+    g.beginPath();
+    g.arc(X(lu), Y(lv), 8, 0, Math.PI * 2);
+    g.fill();
+    g.font = `600 20px ${FONT}`;
+    g.fillStyle = '#94a3b8';
+    g.fillText(`H ${m.chart.high}`, cx + 12, cy + 24);
+    g.fillText(`L ${m.chart.low}`, cx + 12, cy + ch - 8);
+    g.font = `700 26px ${FONT}`;
+    g.fillStyle = '#f8fafc';
+    const label = `${m.chart.symbol} ${m.chart.last}`;
+    g.fillText(label, cx + cw - g.measureText(label).width - 14, cy + 32);
+  }
+  // quote rows
+  m.rows.forEach((r, i) => {
+    const y = 132 + i * 86;
+    g.fillStyle = '#f8fafc';
+    g.font = `700 40px ${FONT}`;
+    g.fillText(r.symbol, 590, y);
+    g.fillStyle = '#94a3b8';
+    g.font = `600 22px ${FONT}`;
+    g.fillText(r.price, 590, y + 32);
+    g.fillStyle = col(r.trend);
+    g.font = `700 34px ${FONT}`;
+    const arrow = r.trend === 'up' ? '▲' : r.trend === 'down' ? '▼' : '■';
+    const txt = `${r.change} ${arrow}`;
+    g.fillText(txt, w - 34 - g.measureText(txt).width, y + 6);
+  });
+  // footer
+  g.fillStyle = '#94a3b8';
+  g.font = `500 20px ${FONT}`;
+  g.fillText(m.footer.length > 90 ? `${m.footer.slice(0, 89)}…` : m.footer, 30, h - 30);
+}
+
+/** Static fallback board (kept for reference; the live board uses drawMarketsBoard). */
 export function marketsBoard() {
   return make('markets', 1024, 512, (g, w, h) => {
     g.fillStyle = '#071735';

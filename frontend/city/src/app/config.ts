@@ -23,10 +23,16 @@ export function safeExternalUrl(raw: string | null | undefined): string | null {
   }
 }
 
+import { safeFeedUrl } from '../services/markets';
+
 export const cityConfig = {
   /** Canonical web app origin for business workflows. */
   webUrl: (import.meta.env.VITE_WEB_URL ?? 'http://localhost:3000').replace(/\/$/, ''),
   dataMode: mode(),
   /** Market charts page for the Global Markets billboard; null until a destination is approved and configured. */
   marketsUrl: safeExternalUrl(import.meta.env.VITE_MARKETS_URL),
+  /** Backend market feed endpoint; null = mock feed (simulated, clearly labelled). */
+  marketsFeedUrl: safeFeedUrl(import.meta.env.VITE_MARKETS_FEED_URL),
+  /** Billboard refresh interval (ms). Defaults: 30 s mock, 60 s live. */
+  marketsRefreshMs: Math.max(15, Number(import.meta.env.VITE_MARKETS_REFRESH_SECONDS) || (import.meta.env.VITE_MARKETS_FEED_URL ? 60 : 30)) * 1000,
 } as const;
