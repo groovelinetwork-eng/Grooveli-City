@@ -14,7 +14,12 @@ const nextConfig = {
   // In dev: proxy /city to Vite dev server.
   // In production: city is built and served from public/city/ (static files).
   async rewrites() {
-    if (isProduction) return [];
+    if (isProduction) {
+      return [
+        { source: '/city', destination: '/city/index.html' },
+        { source: '/city/', destination: '/city/index.html' },
+      ];
+    }
     return [
       { source: '/city', destination: `${CITY_DEV_ORIGIN}/city/` },
       { source: '/city/:path*', destination: `${CITY_DEV_ORIGIN}/city/:path*` },

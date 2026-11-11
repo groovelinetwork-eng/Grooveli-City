@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm turbo build --filter=@grooveli/city --filter=@grooveli/web && cp -r ../city/dist ./public/city"
+  "buildCommand": "cd ../.. && pnpm turbo build --filter=@grooveli/city && mkdir -p frontend/web/public && rm -rf frontend/web/public/city && cp -r frontend/city/dist frontend/web/public/city && pnpm turbo build --filter=@grooveli/web"
 }
 
