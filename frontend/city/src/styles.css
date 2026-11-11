@@ -829,3 +829,72 @@ kbd {
 .markets-table th, .markets-table td { text-align: left; padding: 6px 4px; border-bottom: 1px solid rgba(148, 163, 184, 0.2); }
 .markets-table td.up { color: #4ade80; }
 .markets-table td.down { color: #f87171; }
+
+/* ---------------------------------------------------------------- city map */
+.panel.panel-wide {
+  width: min(1120px, calc(100vw - 24px));
+  right: 50%;
+  transform: translateX(50%);
+  max-height: calc(100vh - 96px);
+  top: 64px;
+}
+.citymap { display: flex; flex-direction: column; gap: 8px; }
+.citymap-frame { position: relative; width: 100%; border-radius: 12px; overflow: hidden; background: #cfe3c2; box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.25); }
+.citymap-compact .citymap-frame { aspect-ratio: 186 / 124; }
+.citymap-full .citymap-frame { height: min(64vh, 640px); }
+.citymap svg { display: block; width: 100%; height: 100%; touch-action: none; user-select: none; cursor: grab; }
+.citymap svg:active { cursor: grabbing; }
+.cm-green { fill: #cfe3c2; }
+.cm-asphalt { fill: #5d6776; }
+.cm-dash { fill: rgba(255, 255, 255, 0.55); }
+.cm-zebra { fill: rgba(255, 255, 255, 0.85); }
+.cm-sidewalk { fill: #e7e2d7; }
+.cm-lot { fill-opacity: 0.16; }
+.cm-plaza { fill: #cfe6f2; }
+.cm-plaza-ring { fill: none; stroke: #22d3ee; stroke-width: 0.6; }
+.cm-plaza-disc { fill: #7dd3fc; }
+.cm-park { fill: #9fcf86; }
+.cm-pond { fill: #6ec2e6; }
+.cm-tree { fill: #4f9a3a; fill-opacity: 0.85; }
+.cm-shadow { fill: rgba(15, 23, 42, 0.22); }
+.cm-park-label { fill: #2f5d1f; font: 600 3.2px Inter, system-ui, sans-serif; }
+.cm-district { stroke-width: 0; fill-opacity: 0.14; cursor: pointer; outline: none; transition: fill 0.12s; }
+.cm-district.is-current { stroke-width: 2px; stroke-dasharray: 6 4; vector-effect: non-scaling-stroke; stroke-opacity: 0.85; }
+.cm-district.is-active { stroke-width: 3px; vector-effect: non-scaling-stroke; stroke-dasharray: none; }
+.cm-district:focus-visible { stroke-width: 3px; vector-effect: non-scaling-stroke; stroke: #0ea5e9 !important; }
+.cm-building { stroke: #8a96a8; stroke-width: 0.8px; vector-effect: non-scaling-stroke; }
+.cm-building.is-landmark { stroke-width: 1.6px; cursor: pointer; outline: none; }
+.cm-building.is-active, .cm-building:focus-visible { stroke-width: 3px; stroke: #0ea5e9 !important; }
+.cm-entrance { fill: #22d3ee; stroke: #0b3b4a; stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.cm-icon-bg { fill: rgba(255, 255, 255, 0.92); stroke: rgba(15, 23, 42, 0.35); stroke-width: 1px; vector-effect: non-scaling-stroke; }
+.cm-label { fill: #0f172a; font-family: Inter, 'Segoe UI', system-ui, sans-serif; font-weight: 700; paint-order: stroke; stroke: rgba(255, 255, 255, 0.92); stroke-width: 3px; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.cm-label.is-active { fill: #075985; }
+.cm-building-label { font-weight: 600; }
+.cm-you { fill: #0ea5e9; stroke: #fff; stroke-width: 2.5px; vector-effect: non-scaling-stroke; }
+.cm-you-pulse { fill: rgba(14, 165, 233, 0.25); transform-box: fill-box; transform-origin: center; animation: cm-pulse 1.8s ease-out infinite; }
+.cm-you-label { fill: #075985; }
+@keyframes cm-pulse { from { transform: scale(0.4); opacity: 0.9; } to { transform: scale(1.2); opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .cm-you-pulse { animation: none; } }
+.citymap-controls { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 6px; }
+.cm-btn { width: 36px; height: 36px; border-radius: 10px; border: 1px solid rgba(148, 163, 184, 0.45); background: rgba(8, 15, 32, 0.82); color: #e2e8f0; font-size: 1.15rem; line-height: 1; cursor: pointer; }
+.cm-btn:hover, .cm-btn:focus-visible { background: rgba(14, 116, 144, 0.9); outline: none; }
+.citymap-card { min-height: 64px; padding: 10px 12px; border-radius: 12px; background: rgba(15, 23, 42, 0.55); }
+.citymap-card p { margin: 2px 0; }
+.cm-card-title { font-weight: 700; font-size: 1rem; }
+.cm-here { font-weight: 500; font-size: 0.8rem; color: #67e8f9; }
+.citymap-full { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 12px; align-items: start; }
+@media (max-width: 860px) {
+  .citymap-full { grid-template-columns: minmax(0, 1fr); }
+  .citymap-full .citymap-frame { height: min(56vh, 520px); }
+}
+@media (max-width: 720px) {
+  .panel.panel-wide { top: auto; bottom: 12px; right: 12px; transform: none; max-height: 88vh; }
+}
+
+.panel { scrollbar-gutter: stable; }
+.citymap.has-toolbar .citymap-controls { position: static; flex-direction: row; justify-content: flex-end; }
+.citymap.has-toolbar .cm-btn { width: 32px; height: 32px; font-size: 1rem; }
+.cm-btn.cm-btn-wide { width: auto; padding: 0 10px; font-size: 0.85rem; }
+@media (max-width: 720px) {
+  .citymap-full .citymap-frame { height: auto; aspect-ratio: 186 / 124; }
+}

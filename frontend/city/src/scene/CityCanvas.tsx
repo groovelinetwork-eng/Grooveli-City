@@ -41,6 +41,8 @@ export interface CityCanvasProps {
   view: MutableRefObject<CityView>;
   cameraAssist: boolean;
   onAssist?: (entrance: string | null) => void;
+  /** Stop rendering while a full-screen overlay (the full city map) covers the scene. */
+  paused?: boolean;
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
   markets: BoardModel | null;
@@ -65,6 +67,7 @@ export default function CityCanvas(props: CityCanvasProps) {
     <div className="canvas-stack">
       <div ref={labelLayer as unknown as React.RefObject<HTMLDivElement>} className="label-layer" aria-hidden="true" />
       <Canvas
+        frameloop={props.paused ? 'never' : 'always'}
         dpr={quality.dpr}
         shadows={quality.shadows ? 'soft' : false}
         gl={{ antialias: quality.level !== 'low', powerPreference: 'high-performance' }}

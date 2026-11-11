@@ -1,6 +1,5 @@
 import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { DISTRICTS, getDistrict, initials, type DistrictId } from '@grooveli/frontend-domain/public';
-import { GRID_H, GRID_W, WORLD_BOUNDS, blockBounds, type Vec2 } from '../world/layout';
+import { initials } from '@grooveli/frontend-domain/public';
 import type { InputState } from '../scene/Player';
 import type { CityIdentity } from '../services/identity';
 
@@ -81,45 +80,6 @@ export function RoundButton({ label, icon, onClick, badge, dot }: { label: strin
 
 export function PinIcon() {
   return ICONS.pin;
-}
-
-export function Minimap({ pos, district, onTravel }: { pos: Vec2; district: DistrictId | null; onTravel: (d: DistrictId) => void }) {
-  const W = WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX;
-  const H = WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ;
-  const sx = (x: number) => ((x - WORLD_BOUNDS.minX) / W) * 160;
-  const sz = (z: number) => ((z - WORLD_BOUNDS.minZ) / H) * (160 * (H / W));
-  return (
-    <nav className="minimap" aria-label="Minimap — choose a district to travel">
-      <svg viewBox={`0 0 160 ${160 * (H / W)}`} width={160} height={160 * (H / W)}>
-        {DISTRICTS.map((d) => {
-          const b = blockBounds(d.grid);
-          return (
-            <rect
-              key={d.id}
-              x={sx(b.minX)}
-              y={sz(b.minZ)}
-              width={sx(b.maxX) - sx(b.minX)}
-              height={sz(b.maxZ) - sz(b.minZ)}
-              rx={3}
-              fill={d.color}
-              opacity={district === d.id ? 1 : 0.5}
-              role="button"
-              tabIndex={0}
-              aria-label={`Travel to ${d.name}`}
-              onClick={() => onTravel(d.id)}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onTravel(d.id)}
-              style={{ cursor: 'pointer' }}
-            />
-          );
-        })}
-        <circle cx={sx(pos.x)} cy={sz(pos.z)} r={4} fill="#fff" stroke="#0ea5e9" strokeWidth={2} />
-      </svg>
-      <span className="small">{district ? getDistrict(district).name : 'Street'}</span>
-      <span className="sr-only">
-        City grid {GRID_W} by {GRID_H}.
-      </span>
-    </nav>
-  );
 }
 
 /** Touch joystick writing screen-space axes into the shared input ref. */

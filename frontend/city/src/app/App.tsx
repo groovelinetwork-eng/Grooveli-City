@@ -15,9 +15,10 @@ import { nearestInteractable } from '../world/movement';
 import { CAMERA, createCityView } from '../scene/camera';
 import type { InputState, PlayerState } from '../scene/Player';
 import { Directory } from '../ui/Directory';
-import { DistrictPill, IdentityChip, Joystick, Minimap, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { DistrictPill, IdentityChip, Joystick, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { CityMap } from '../ui/CityMap';
 import { BuildingPanel, DistrictPanel, HelpPanel, MarketsPanel, MenuPanel, NotificationsPanel, PeoplePanel, PlacesPanel, SettingsPanel, StationList, StationPanel, hqFor } from '../ui/panels';
-import { SimTag } from '../ui/Panel';
+import { Panel, SimTag } from '../ui/Panel';
 
 const CityCanvas = lazy(() => import('../scene/CityCanvas'));
 
@@ -44,6 +45,7 @@ type Overlay =
   | { kind: 'notifications' }
   | { kind: 'station'; station: Station }
   | { kind: 'markets' }
+  | { kind: 'map' }
   | null;
 
 interface InteriorState {
@@ -156,6 +158,12 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
     const t = window.setTimeout(() => setOpened(null), 7000);
     return () => window.clearTimeout(t);
   }, [opened]);
+
+  /** Map → existing building panel (details + Enter); no new movement rules. */
+  const openBuildingFromMap = useCallback((b: PlacedBuilding) => {
+    const target = INTERACTABLES.find((i) => i.kind === 'building' && i.id === b.id);
+    if (target) setOverlay({ kind: 'place', target });
+  }, []);
 
   const rotateView = useCallback((dir: 1 | -1 | 0) => {
     if (dir === 0) view.current.reset = true;
@@ -319,6 +327,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               view={view}
               cameraAssist={settings.cameraAssist}
               onAssist={onAssist}
+              paused={overlay?.kind === 'map'}
               featurePulse={featurePulse}
               onFeature={activateFeature}
               markets={marketsModel}
@@ -419,6 +428,11 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setOverlay(null)} onDirectory={() => setFallback('Directory view (2D) selected.')} />
         ) : null}
         {overlay?.kind === 'help' ? <HelpPanel onClose={() => setOverlay(null)} /> : null}
+        {overlay?.kind === 'map' && !interior ? (
+          <Panel title="City map" subtitle={district ? `You are in ${getDistrict(district).name}` : 'Grooveli City'} onClose={() => setOverlay(null)} wide>
+            <CityMap variant="full" pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} />
+          </Panel>
+        ) : null}
         {overlay?.kind === 'markets' ? <MarketsPanel feed={marketFeed} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'notifications' ? <NotificationsPanel events={data.events} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'menu' ? (
@@ -430,7 +444,13 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
             onRotate={interior ? undefined : rotateView}
             onZoom={(dir) => setZoom((z) => (dir > 0 ? Math.min(CAMERA.maxZoom, z + 3) : Math.max(CAMERA.minZoom, z - 3)))}
             homeHref={homeHref}
-            map={interior ? <p className="small muted">Leave the building to use the map.</p> : <Minimap pos={pos} district={district} onTravel={travel} />}
+            map={
+              interior ? (
+                <p className="small muted">Leave the building to use the map.</p>
+              ) : (
+                <CityMap pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} onExpand={() => setOverlay({ kind: 'map' })} />
+              )
+            }
           />
         ) : null}
 

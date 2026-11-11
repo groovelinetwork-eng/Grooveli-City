@@ -134,8 +134,26 @@ describe('3D city HUD (canvas stubbed)', () => {
     expect(within(notes).getByText('Tech Hub Career Fair')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
     const menu = screen.getByRole('dialog', { name: 'Menu' });
+    // map: select a district (shows its details), then travel via the existing travel action
+    await userEvent.click(within(menu).getByRole('button', { name: /^Finance District: .*Show details/ }));
+    expect(within(menu).getByText(/Landmarks: Copperleaf Finance/)).toBeInTheDocument();
     await userEvent.click(within(menu).getByRole('button', { name: 'Travel to Finance District' }));
     expect(screen.getByRole('dialog', { name: 'Finance District' })).toBeInTheDocument();
+  });
+
+  it('opens the full city map from the menu and links landmarks to their building panel', async () => {
+    render(<App search="" webgl />);
+    await screen.findByTestId('canvas-stub');
+    await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Menu' })).getByRole('button', { name: 'Open full map' }));
+    const map = screen.getByRole('dialog', { name: 'City map' });
+    // keyboard: focus previews a district, Enter selects
+    const plaza = within(map).getByRole('button', { name: /^Grooveli Plaza: .*Show details/ });
+    plaza.focus();
+    expect(within(map).getByText(/Hover|Click or tap for actions/)).toBeInTheDocument();
+    await userEvent.click(within(map).getByRole('button', { name: /^Kestrel Systems HQ, Technology Hub\. Show details/ }));
+    await userEvent.click(within(map).getByRole('button', { name: /Details & enter/ }));
+    expect(screen.getByRole('dialog', { name: 'Kestrel Systems HQ' })).toBeInTheDocument();
   });
 
   it('shows the XP bar only when the web app supplied real level progress', async () => {

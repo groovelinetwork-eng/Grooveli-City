@@ -139,6 +139,8 @@ test('J4 city by keyboard: move, interact, enter apartment, return to web', asyn
   await page.keyboard.up('KeyW');
   // Travel to the AI Center via the menu's map (keyboard accessible) and enter.
   await page.getByRole('button', { name: 'Menu' }).click();
+  await page.getByRole('button', { name: /^AI Career Center: .*Show details/ }).focus();
+  await page.keyboard.press('Enter');
   await page.getByRole('button', { name: 'Travel to AI Career Center' }).focus();
   await page.keyboard.press('Enter');
   const panel = page.getByRole('dialog', { name: 'AI Career Center' });
