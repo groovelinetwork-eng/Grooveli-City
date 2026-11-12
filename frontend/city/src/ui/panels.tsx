@@ -645,9 +645,20 @@ export function SettingsPanel({ settings, onChange, onClose, onDirectory }: { se
       <label className="check">
         <input type="checkbox" checked={settings.labels} onChange={(e) => set('labels', e.target.checked)} /> Show district labels
       </label>
-      <label className="check">
-        <input type="checkbox" checked={settings.joystick} onChange={(e) => set('joystick', e.target.checked)} /> On-screen joystick
-      </label>
+      <fieldset className="field">
+        <legend>Touch controls (joystick, camera rotation, interact)</legend>
+        {(
+          [
+            ['auto', 'Automatic — show on touch devices'],
+            ['on', 'Always show'],
+            ['off', 'Never show'],
+          ] as const
+        ).map(([v, label]) => (
+          <label key={v} className="check">
+            <input type="radio" name="touch" checked={settings.touchControls === v} onChange={() => set('touchControls', v)} /> {label}
+          </label>
+        ))}
+      </fieldset>
       <label className="check">
         <input type="checkbox" checked={settings.cameraAssist} onChange={(e) => set('cameraAssist', e.target.checked)} /> Turn the camera to show hidden entrances
       </label>
@@ -731,7 +742,7 @@ export function HelpPanel({ onClose }: { onClose: () => void }) {
           <kbd>Esc</kbd> — close panels / leave a building
         </li>
         <li>Click or tap the ground — walk there</li>
-        <li>Touch: on-screen joystick (enable in Settings) and the Interact button</li>
+        <li>Touch: drag the joystick to walk, hold ⟲ / ⟳ to rotate the camera, tap Interact near a place (shown automatically on phones and tablets; see Settings)</li>
         <li>
           <kbd>P</kbd> — places list · <kbd>+</kbd>/<kbd>-</kbd> — zoom
         </li>

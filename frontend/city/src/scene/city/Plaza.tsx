@@ -1,5 +1,6 @@
 import { useMemo, useRef } from 'react';
-import { useFrame, type ThreeEvent } from '@react-three/fiber';
+import { type ThreeEvent } from '@react-three/fiber';
+import { useActiveFrame } from '../sceneActive';
 import * as THREE from 'three';
 import { PLAZA_H, SIDEWALK_H, type Vec2 } from '../../world/layout';
 import { PLAZA_RECT, PLAZA_RING } from '../../world/plan';
@@ -23,7 +24,7 @@ export function Plaza({ night, reducedMotion, onGround }: { night: boolean; redu
   const glow = useMemo(() => new THREE.MeshStandardMaterial({ color: CYAN, emissive: CYAN, emissiveIntensity: night ? 2.6 : 1.6, toneMapped: false }), [night]);
   const ringMat = useMemo(() => new THREE.MeshBasicMaterial({ color: '#8ff3ff', transparent: true, opacity: 0.85, toneMapped: false }), []);
   const disc = useRef<THREE.Mesh>(null);
-  useFrame(({ clock }) => {
+  useActiveFrame(({ clock }) => {
     if (!disc.current || reducedMotion) return;
     (disc.current.material as THREE.MeshStandardMaterial).emissiveIntensity = (night ? 1.2 : 0.22) + Math.sin(clock.elapsedTime * 1.6) * 0.08;
   });

@@ -25,7 +25,7 @@ export function colorMat(color: string, roughness = 0.7) {
   return mat;
 }
 const screenMats = new WeakMap<THREE.Texture, THREE.MeshStandardMaterial[]>();
-function screenMat(t: THREE.Texture, glow: boolean) {
+export function screenMat(t: THREE.Texture, glow: boolean) {
   let pair = screenMats.get(t);
   if (!pair) {
     pair = [0.55, 0.95].map((i) => new THREE.MeshStandardMaterial({ map: t, emissive: '#ffffff', emissiveMap: t, emissiveIntensity: i, roughness: 0.25 }));
@@ -34,7 +34,7 @@ function screenMat(t: THREE.Texture, glow: boolean) {
   return pair[glow ? 1 : 0]!;
 }
 const printMats = new WeakMap<THREE.Texture, THREE.MeshStandardMaterial>();
-function printMat(t: THREE.Texture) {
+export function printMat(t: THREE.Texture) {
   let mat = printMats.get(t);
   if (!mat) printMats.set(t, (mat = new THREE.MeshStandardMaterial({ map: t, roughness: 0.75, transparent: true, alphaTest: 0.02 })));
   return mat;

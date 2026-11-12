@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
-import { useRef, type MutableRefObject } from 'react';
+import { useEffect, useRef, type MutableRefObject } from 'react';
+import { HIDDEN_SCENE, SceneActive, inHiddenScene } from './sceneActive';
 import type { LabelPortal } from './labels';
 import type { AvatarConfig, DistrictId, PresenceProjection, PublicHqProjection } from '@grooveli/frontend-domain/public';
 import { Environment } from './Environment';
@@ -8,6 +9,9 @@ import { Ambient } from './Ambient';
 import { Player, type InputState, type PlayerState } from './Player';
 import { PresenceAvatars } from './Presence';
 import { Interior } from './Interior';
+import { HqPreloader } from './hq/HqPreloader';
+import { DEMO_HQ } from './hq/HqOffice';
+import { markHqWarm } from './hq/hqResources';
 import { Sun } from './Sun';
 import { CAMERA, CAMERA_OFFSET, type CityView } from './camera';
 import type { Quality } from '../world/ambient';
@@ -41,16 +45,54 @@ export interface CityCanvasProps {
   view: MutableRefObject<CityView>;
   cameraAssist: boolean;
   onAssist?: (entrance: string | null) => void;
+  /** Stop rendering while a full-screen overlay (the full city map) covers the scene. */
+  paused?: boolean;
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
   markets: BoardModel | null;
+  /** Fired once each time a scene (street or interior) has rendered its first complete frame. */
+  onSceneReady?: () => void;
+  /** Company HQ to prepare in the background (null hq = demonstration HQ). */
+  preload?: { key: string; hq: PublicHqProjection | null } | null;
+}
+
+/**
+ * Reports when the scene it is mounted in has been fully drawn once. useFrame
+ * callbacks run before each render, so the second callback means the first
+ * frame (with its geometry uploads and shader compiles) has completed.
+ */
+function SceneReady({ onReady }: { onReady?: () => void }) {
+  const frames = useRef(0);
+  useFrame(() => {
+    frames.current += 1;
+    if (frames.current === 2) onReady?.();
+  });
+  return null;
+}
+
+/** A visited HQ has compiled its shaders: background preparation can skip it afterwards. */
+function MarkHqWarm({ hq }: { hq: PublicHqProjection }) {
+  useEffect(() => markHqWarm(hq), [hq]);
+  return null;
+}
+
+/** Objects inside a mounted-but-hidden scene (see sceneActive.ts) never receive pointer events. */
+function HiddenScenesIgnorePointer() {
+  const setEvents = useThree((s) => s.setEvents);
+  useEffect(() => {
+    setEvents({ filter: (hits) => hits.filter((h) => !inHiddenScene(h.object)) });
+  }, [setEvents]);
+  return null;
 }
 
 /** Dev-only render statistics for performance checks (window.__grooveliRender). */
-function RenderStats() {
+function RenderStats({ player, view }: { player: MutableRefObject<PlayerState>; view: MutableRefObject<CityView> }) {
   const gl = useThree((s) => s.gl);
   useFrame(() => {
-    (window as unknown as { __grooveliRender?: { calls: number; triangles: number } }).__grooveliRender = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    const w = window as unknown as { __grooveliRender?: unknown; __grooveliPlayer?: unknown; __grooveliGl?: unknown };
+    w.__grooveliGl = gl;
+    w.__grooveliRender = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    w.__grooveliPlayer = { x: player.current.pos.x, z: player.current.pos.z, yaw: view.current.yaw };
   });
   return null;
 }
@@ -65,6 +107,7 @@ export default function CityCanvas(props: CityCanvasProps) {
     <div className="canvas-stack">
       <div ref={labelLayer as unknown as React.RefObject<HTMLDivElement>} className="label-layer" aria-hidden="true" />
       <Canvas
+        frameloop={props.paused ? 'never' : 'always'}
         dpr={quality.dpr}
         shadows={quality.shadows ? 'soft' : false}
         gl={{ antialias: quality.level !== 'low', powerPreference: 'high-performance' }}
@@ -76,7 +119,7 @@ export default function CityCanvas(props: CityCanvasProps) {
         }}
         aria-hidden="true"
       >
-        {import.meta.env.DEV ? <RenderStats /> : null}
+        {import.meta.env.DEV ? <RenderStats player={props.player} view={props.view} /> : null}
         {ownRig ? null : <color attach="background" args={[night ? '#070d1f' : '#cfe6f5']} />}
         <OrthographicCamera
           makeDefault
@@ -91,8 +134,49 @@ export default function CityCanvas(props: CityCanvasProps) {
             <ambientLight intensity={night ? 0.3 : 0.25} color={night ? '#c7d2fe' : '#ffffff'} />
           </>
         )}
+        <HiddenScenesIgnorePointer />
+        {/* The street stays mounted (hidden and frozen) while you are inside, so leaving is instant. */}
+        <SceneActive.Provider value={!interior}>
+          <group visible={!interior} userData={{ [HIDDEN_SCENE]: !!interior }}>
+            <Sun focus={focus} night={night} shadows={quality.shadows} mapSize={quality.shadowMap} />
+            <Environment
+              night={night}
+              labels={props.labels && !interior}
+              density={quality.props}
+              eventDistricts={props.eventDistricts}
+              reducedMotion={props.reducedMotion}
+              currentDistrict={props.currentDistrict}
+              nearbyId={props.nearbyId}
+              topJobs={props.topJobs}
+              onGround={props.onGround}
+              onBuilding={props.onBuilding}
+              labelPortal={labelLayer}
+              focus={focus}
+              nightLights={quality.level === 'high' ? 6 : quality.level === 'medium' ? 4 : 0}
+              featurePulse={props.featurePulse}
+              onFeature={props.onFeature}
+              markets={props.markets}
+            />
+            <Ambient pedestrians={quality.pedestrians} vehicles={quality.vehicles} reducedMotion={props.reducedMotion} night={night} />
+            <PresenceAvatars people={props.people} labels={props.labels && !interior} labelPortal={labelLayer} player={props.player} />
+            <Player
+              avatar={props.avatar}
+              player={props.player}
+              input={props.input}
+              focus={focus}
+              zoom={props.zoom}
+              reducedMotion={props.reducedMotion}
+              view={props.view}
+              assist={props.cameraAssist}
+              onMoved={props.onMoved}
+              onAssist={props.onAssist}
+            />
+          </group>
+        </SceneActive.Provider>
         {interior ? (
           <>
+            <SceneReady key={`interior-${interior.kind}`} onReady={props.onSceneReady} />
+            {interior.kind === 'hq' ? <MarkHqWarm hq={interior.hq ?? DEMO_HQ} /> : null}
             <Interior
               kind={interior.kind}
               avatar={props.avatar}
@@ -113,39 +197,8 @@ export default function CityCanvas(props: CityCanvasProps) {
           </>
         ) : (
           <>
-            <Sun focus={focus} night={night} shadows={quality.shadows} mapSize={quality.shadowMap} />
-            <Environment
-              night={night}
-              labels={props.labels}
-              density={quality.props}
-              eventDistricts={props.eventDistricts}
-              reducedMotion={props.reducedMotion}
-              currentDistrict={props.currentDistrict}
-              nearbyId={props.nearbyId}
-              topJobs={props.topJobs}
-              onGround={props.onGround}
-              onBuilding={props.onBuilding}
-              labelPortal={labelLayer}
-              focus={focus}
-              nightLights={quality.level === 'high' ? 6 : quality.level === 'medium' ? 4 : 0}
-              featurePulse={props.featurePulse}
-              onFeature={props.onFeature}
-              markets={props.markets}
-            />
-            <Ambient pedestrians={quality.pedestrians} vehicles={quality.vehicles} reducedMotion={props.reducedMotion} night={night} />
-            <PresenceAvatars people={props.people} labels={props.labels} labelPortal={labelLayer} player={props.player} />
-            <Player
-              avatar={props.avatar}
-              player={props.player}
-              input={props.input}
-              focus={focus}
-              zoom={props.zoom}
-              reducedMotion={props.reducedMotion}
-              view={props.view}
-              assist={props.cameraAssist}
-              onMoved={props.onMoved}
-              onAssist={props.onAssist}
-            />
+            <SceneReady key="street" onReady={props.onSceneReady} />
+            {props.preload ? <HqPreloader key={props.preload.key} hq={props.preload.hq ?? DEMO_HQ} shadows={quality.shadows} shadowMap={quality.shadowMap} /> : null}
           </>
         )}
       </Canvas>

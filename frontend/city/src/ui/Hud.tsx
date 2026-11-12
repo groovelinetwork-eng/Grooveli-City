@@ -1,7 +1,5 @@
-import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
-import { DISTRICTS, getDistrict, initials, type DistrictId } from '@grooveli/frontend-domain/public';
-import { GRID_H, GRID_W, WORLD_BOUNDS, blockBounds, type Vec2 } from '../world/layout';
-import type { InputState } from '../scene/Player';
+import type { ReactNode } from 'react';
+import { initials } from '@grooveli/frontend-domain/public';
 import type { CityIdentity } from '../services/identity';
 
 /** Reference top-left card: avatar disc, name, level and (only when supplied) progress to next level. */
@@ -81,85 +79,6 @@ export function RoundButton({ label, icon, onClick, badge, dot }: { label: strin
 
 export function PinIcon() {
   return ICONS.pin;
-}
-
-export function Minimap({ pos, district, onTravel }: { pos: Vec2; district: DistrictId | null; onTravel: (d: DistrictId) => void }) {
-  const W = WORLD_BOUNDS.maxX - WORLD_BOUNDS.minX;
-  const H = WORLD_BOUNDS.maxZ - WORLD_BOUNDS.minZ;
-  const sx = (x: number) => ((x - WORLD_BOUNDS.minX) / W) * 160;
-  const sz = (z: number) => ((z - WORLD_BOUNDS.minZ) / H) * (160 * (H / W));
-  return (
-    <nav className="minimap" aria-label="Minimap — choose a district to travel">
-      <svg viewBox={`0 0 160 ${160 * (H / W)}`} width={160} height={160 * (H / W)}>
-        {DISTRICTS.map((d) => {
-          const b = blockBounds(d.grid);
-          return (
-            <rect
-              key={d.id}
-              x={sx(b.minX)}
-              y={sz(b.minZ)}
-              width={sx(b.maxX) - sx(b.minX)}
-              height={sz(b.maxZ) - sz(b.minZ)}
-              rx={3}
-              fill={d.color}
-              opacity={district === d.id ? 1 : 0.5}
-              role="button"
-              tabIndex={0}
-              aria-label={`Travel to ${d.name}`}
-              onClick={() => onTravel(d.id)}
-              onKeyDown={(e) => (e.key === 'Enter' || e.key === ' ') && onTravel(d.id)}
-              style={{ cursor: 'pointer' }}
-            />
-          );
-        })}
-        <circle cx={sx(pos.x)} cy={sz(pos.z)} r={4} fill="#fff" stroke="#0ea5e9" strokeWidth={2} />
-      </svg>
-      <span className="small">{district ? getDistrict(district).name : 'Street'}</span>
-      <span className="sr-only">
-        City grid {GRID_W} by {GRID_H}.
-      </span>
-    </nav>
-  );
-}
-
-/** Touch joystick writing screen-space axes into the shared input ref. */
-export function Joystick({ input }: { input: MutableRefObject<InputState> }) {
-  const base = useRef<HTMLDivElement>(null);
-  const knob = useRef<HTMLDivElement>(null);
-  const active = useRef<number | null>(null);
-  const update = (e: ReactPointerEvent) => {
-    const el = base.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
-    const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
-    const len = Math.max(1, Math.hypot(dx, dy));
-    input.current = { x: dx / len, y: -dy / len };
-    if (knob.current) knob.current.style.transform = `translate(${(dx / len) * 28}px, ${(dy / len) * 28}px)`;
-  };
-  const end = () => {
-    active.current = null;
-    input.current = { x: 0, y: 0 };
-    if (knob.current) knob.current.style.transform = '';
-  };
-  return (
-    <div
-      ref={base}
-      className="joystick"
-      role="application"
-      aria-label="Movement joystick"
-      onPointerDown={(e) => {
-        active.current = e.pointerId;
-        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-        update(e);
-      }}
-      onPointerMove={(e) => active.current === e.pointerId && update(e)}
-      onPointerUp={end}
-      onPointerCancel={end}
-    >
-      <div ref={knob} className="joystick-knob" />
-    </div>
-  );
 }
 
 export function HudButton({ onClick, label, children, pressed }: { onClick: () => void; label: string; children: ReactNode; pressed?: boolean }) {

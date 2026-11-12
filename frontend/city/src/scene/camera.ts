@@ -36,8 +36,13 @@ export interface CityView {
   turn: number;
   /** Pending request to return to the default north view. */
   reset: boolean;
+  /** Continuous rotation while a touch rotate button is held: −1 left, +1 right, 0 none. */
+  spin: number;
 }
 
 export function createCityView(): CityView {
-  return { yaw: 0, turn: 0, reset: false };
+  return { yaw: 0, turn: 0, reset: false, spin: 0 };
 }
+
+/** Hold-to-rotate speed for the touch camera buttons (radians per second). */
+export const SPIN_SPEED = 1.6;

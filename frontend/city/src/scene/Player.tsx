@@ -1,10 +1,11 @@
 import { useRef, type MutableRefObject } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import type { Group, OrthographicCamera } from 'three';
 import type { AvatarConfig } from '@grooveli/frontend-domain/public';
 import { Avatar } from './Avatar';
 import { PERSON_SCALE } from './Ambient';
-import { CAMERA, CAMERA_OFFSET, effectiveZoom, type CityView } from './camera';
+import { CAMERA, CAMERA_OFFSET, SPIN_SPEED, effectiveZoom, type CityView } from './camera';
 import { inputToWorld, seek, step } from '../world/movement';
 import { groundHeight, type Vec2 } from '../world/layout';
 import { NO_ASSIST, activeEntrance, angleDelta, manualOverride, stepAssist, type AssistState } from '../world/cameraAssist';
@@ -65,8 +66,9 @@ export function Player({
   const assist = useRef<AssistState>(NO_ASSIST);
   /** The player's own view yaw (manual turns); the assist overrides it temporarily. */
   const baseYaw = useRef(0);
+  const spinning = useRef(false);
 
-  useFrame((state, dt) => {
+  useActiveFrame((state, dt) => {
     const p = player.current;
     const v = view.current;
 
@@ -80,6 +82,18 @@ export function Player({
       assist.current = manualOverride(assist.current);
       if (before.active && onAssist) onAssist(null);
     }
+
+    // ---- hold-to-rotate (touch buttons): turn the player's own view continuously
+    if (v.spin) {
+      if (!spinning.current) {
+        spinning.current = true;
+        const before = assist.current;
+        assist.current = manualOverride(assist.current);
+        if (before.active && onAssist) onAssist(null);
+        baseYaw.current = v.yaw; // continue from what is on screen (no jump)
+      }
+      baseYaw.current += v.spin * SPIN_SPEED * Math.min(dt, 0.1);
+    } else spinning.current = false;
 
     // ---- movement (screen-relative to the current camera yaw)
     const manual = inputToWorld(input.current, v.yaw);
@@ -112,7 +126,7 @@ export function Player({
     }
     const target = activeEntrance(assist.current)?.preferredYaw ?? baseYaw.current;
     // Eased turn (~1 s); instant with reduced motion.
-    const ky = reducedMotion ? 1 : 1 - Math.pow(0.03, Math.min(dt, 0.1));
+    const ky = reducedMotion ? 1 : 1 - Math.pow(spinning.current ? 0.0005 : 0.03, Math.min(dt, 0.1));
     v.yaw += angleDelta(v.yaw, target) * ky;
     if (Math.abs(angleDelta(v.yaw, target)) < 1e-3) v.yaw = target;
 

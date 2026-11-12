@@ -15,9 +15,15 @@ import { nearestInteractable } from '../world/movement';
 import { CAMERA, createCityView } from '../scene/camera';
 import type { InputState, PlayerState } from '../scene/Player';
 import { Directory } from '../ui/Directory';
-import { DistrictPill, IdentityChip, Joystick, Minimap, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { DistrictPill, IdentityChip, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { TouchControls } from '../ui/TouchControls';
+import { useTouchControls } from './touchControls';
+import { enterInfo, leaveInfo, useSceneTransition } from './sceneTransition';
+import { preloadTargetAt } from './preloadTarget';
+import { SceneTransition } from '../ui/SceneTransition';
+import { CityMap } from '../ui/CityMap';
 import { BuildingPanel, DistrictPanel, HelpPanel, MarketsPanel, MenuPanel, NotificationsPanel, PeoplePanel, PlacesPanel, SettingsPanel, StationList, StationPanel, hqFor } from '../ui/panels';
-import { SimTag } from '../ui/Panel';
+import { Panel, SimTag } from '../ui/Panel';
 
 const CityCanvas = lazy(() => import('../scene/CityCanvas'));
 
@@ -44,6 +50,7 @@ type Overlay =
   | { kind: 'notifications' }
   | { kind: 'station'; station: Station }
   | { kind: 'markets' }
+  | { kind: 'map' }
   | null;
 
 interface InteriorState {
@@ -89,6 +96,8 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
   const view = useRef(createCityView());
   const [assistName, setAssistName] = useState<string | null>(null);
   const [featurePulse, setFeaturePulse] = useState(0);
+  const touch = useTouchControls(settings.touchControls);
+  const sceneTx = useSceneTransition(settings.reducedMotion);
   const marketsAdapter = useMemo(() => createMarketsAdapter(cityConfig.marketsFeedUrl), []);
   const marketFeed = useMarketFeed(marketsAdapter, cityConfig.marketsRefreshMs, !fallback);
   const marketsModel = useMemo(() => (marketFeed.snapshot ? marketsBoardModel(marketFeed.snapshot, { fallback: marketFeed.status === 'fallback' }) : null), [marketFeed]);
@@ -103,6 +112,10 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
   const district = districtAt(pos);
   const eventDistricts = useMemo(() => [...new Set(data.events.map((e) => e.district))], [data]);
   const hq = interior ? hqFor(data, interior.organizationId) : null;
+  // Prepare the nearest company HQ in the background while the player walks up to it.
+  const preloadBuilding = useMemo(() => (interior ? null : preloadTargetAt(pos)), [interior, pos]);
+  const preloadOrgId = preloadBuilding?.organizationId ?? preloadBuilding?.id ?? null;
+  const preload = useMemo(() => (preloadOrgId ? { key: preloadOrgId, hq: hqFor(data, preloadBuilding?.organizationId) } : null), [preloadOrgId, data]); // eslint-disable-line react-hooks/exhaustive-deps
   // Public-safe visitor summary for AI Center displays: real bridged level only.
   const visitor = useMemo(
     () => ({ name: identity.displayName, level: identity.level, levelProgress: identity.levelProgress, guest: identity.source === 'guest' }),
@@ -157,6 +170,12 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
     return () => window.clearTimeout(t);
   }, [opened]);
 
+  /** Map → existing building panel (details + Enter); no new movement rules. */
+  const openBuildingFromMap = useCallback((b: PlacedBuilding) => {
+    const target = INTERACTABLES.find((i) => i.kind === 'building' && i.id === b.id);
+    if (target) setOverlay({ kind: 'place', target });
+  }, []);
+
   const rotateView = useCallback((dir: 1 | -1 | 0) => {
     if (dir === 0) view.current.reset = true;
     else view.current.turn += dir;
@@ -181,21 +200,37 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
     setAnnouncement(`Travelled to ${getDistrict(d).name}.`);
   }, []);
 
-  const enterBuilding = useCallback((buildingId: string) => {
-    const b = PLACED_BUILDINGS.find((x) => x.id === buildingId);
-    if (!b) return;
-    const kind: InteriorKind = b.district === 'apartment' ? 'apartment' : b.district === 'ai-center' ? 'ai-center' : 'hq';
-    if (b.entrance) player.current = { ...player.current, pos: { x: b.entrance.x, z: b.entrance.z + 1 }, target: null };
-    setInterior({ kind, buildingId, organizationId: b.organizationId });
-    setOverlay(null);
-    setAnnouncement(`Entered ${b.name}. Use the list of things in this room, or press Escape to leave.`);
-  }, []);
+  const startTransition = sceneTx.start;
+  const enterBuilding = useCallback(
+    (buildingId: string) => {
+      const b = PLACED_BUILDINGS.find((x) => x.id === buildingId);
+      if (!b) return;
+      const kind: InteriorKind = b.district === 'apartment' ? 'apartment' : b.district === 'ai-center' ? 'ai-center' : 'hq';
+      const org = hqFor(data, b.organizationId)?.organization ?? null;
+      setOverlay(null);
+      keys.current.clear();
+      input.current = { x: 0, y: 0 };
+      setAnnouncement(`Entering ${b.name}…`);
+      // The room is built behind closed doors (see app/sceneTransition.ts).
+      startTransition(enterInfo(b.name, kind, org), () => {
+        if (b.entrance) player.current = { ...player.current, pos: { x: b.entrance.x, z: b.entrance.z + 1 }, target: null };
+        setInterior({ kind, buildingId, organizationId: b.organizationId });
+        setAnnouncement(`Entered ${b.name}. Use the list of things in this room, or press Escape to leave.`);
+      });
+    },
+    [data, startTransition],
+  );
 
   const leaveBuilding = useCallback(() => {
-    setInterior(null);
+    const here = interior ? districtAt(player.current.pos) : null;
     setOverlay(null);
-    setAnnouncement('Back on the street.');
-  }, []);
+    keys.current.clear();
+    input.current = { x: 0, y: 0 };
+    startTransition(leaveInfo(here ? getDistrict(here).name : 'Grooveli City'), () => {
+      setInterior(null);
+      setAnnouncement('Back on the street.');
+    });
+  }, [interior, startTransition]);
 
   const interact = useCallback(() => {
     if (interior) {
@@ -239,7 +274,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
       return !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.tagName === 'SELECT' || t.isContentEditable);
     };
     const down = (e: KeyboardEvent) => {
-      if (typing(e)) return;
+      if (typing(e) || sceneTx.blocking) return; // no input while the doors are shut
       if (e.code === 'Escape') {
         if (overlay) setOverlay(null);
         else if (interior) leaveBuilding();
@@ -278,7 +313,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
       window.removeEventListener('keyup', up);
       window.removeEventListener('blur', blur);
     };
-  }, [fallback, overlay, interior, interact, leaveBuilding, rotateView]);
+  }, [fallback, overlay, interior, interact, leaveBuilding, rotateView, sceneTx.blocking]);
 
   if (fallback) {
     return <Directory identity={identity} data={data} reason={fallback} initialDistrict={launch.district} onTry3d={webgl ? () => setFallback(null) : undefined} />;
@@ -319,15 +354,19 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               view={view}
               cameraAssist={settings.cameraAssist}
               onAssist={onAssist}
+              // the full map covers the scene; so do the closing doors (frees the main thread for the swap)
+              paused={overlay?.kind === 'map' || sceneTx.state?.phase === 'closing'}
               featurePulse={featurePulse}
               onFeature={activateFeature}
               markets={marketsModel}
+              onSceneReady={sceneTx.sceneReady}
+              preload={sceneTx.active ? null : preload}
             />
           </Suspense>
         </SceneBoundary>
       </div>
 
-      <div id="city-hud" className="hud" role="region" aria-label="City controls">
+      <div id="city-hud" className={`hud${touch.show ? ` has-touch-ui touch-${touch.layout} touch-${touch.orientation}` : ''}`} role="region" aria-label="City controls">
         <div className="hud-top-left">
           <IdentityChip identity={identity} webHref={homeHref} />
           {cityConfig.dataMode === 'api' ? <span className="hud-chip warn">API mode: live city data unavailable</span> : null}
@@ -391,15 +430,18 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           move <kbd>E</kbd> interact <kbd>Esc</kbd> close
         </div>
 
-        {settings.joystick ? (
-          <>
-            <Joystick input={input} />
-            {nearby ? (
-              <button type="button" className="touch-interact" onClick={interact} aria-label={`Interact with ${nearby.label}`}>
-                E
-              </button>
-            ) : null}
-          </>
+        {touch.show ? (
+          <TouchControls
+            input={input}
+            view={view}
+            layout={touch.layout}
+            orientation={touch.orientation}
+            canRotate={!interior}
+            canZoom={!interior || interior.kind !== 'apartment'}
+            interactLabel={overlay ? null : interior ? nearStation?.label ?? null : nearby?.label ?? null}
+            onInteract={interact}
+            onZoom={(dir) => setZoom((z) => (dir > 0 ? Math.min(CAMERA.maxZoom, z + 3) : Math.max(CAMERA.minZoom, z - 3)))}
+          />
         ) : null}
 
         <p className="sr-only" aria-live="polite">
@@ -419,6 +461,11 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setOverlay(null)} onDirectory={() => setFallback('Directory view (2D) selected.')} />
         ) : null}
         {overlay?.kind === 'help' ? <HelpPanel onClose={() => setOverlay(null)} /> : null}
+        {overlay?.kind === 'map' && !interior ? (
+          <Panel title="City map" subtitle={district ? `You are in ${getDistrict(district).name}` : 'Grooveli City'} onClose={() => setOverlay(null)} wide>
+            <CityMap variant="full" pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} />
+          </Panel>
+        ) : null}
         {overlay?.kind === 'markets' ? <MarketsPanel feed={marketFeed} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'notifications' ? <NotificationsPanel events={data.events} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'menu' ? (
@@ -430,7 +477,13 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
             onRotate={interior ? undefined : rotateView}
             onZoom={(dir) => setZoom((z) => (dir > 0 ? Math.min(CAMERA.maxZoom, z + 3) : Math.max(CAMERA.minZoom, z - 3)))}
             homeHref={homeHref}
-            map={interior ? <p className="small muted">Leave the building to use the map.</p> : <Minimap pos={pos} district={district} onTravel={travel} />}
+            map={
+              interior ? (
+                <p className="small muted">Leave the building to use the map.</p>
+              ) : (
+                <CityMap pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} onExpand={() => setOverlay({ kind: 'map' })} />
+              )
+            }
           />
         ) : null}
 
@@ -438,6 +491,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           Demo city · synthetic data · people are <SimTag>simulated</SimTag> · {DISTRICTS.length} places
         </div>
       </div>
+      {sceneTx.state ? <SceneTransition t={sceneTx.state} reducedMotion={settings.reducedMotion} /> : null}
     </div>
   );
 }
