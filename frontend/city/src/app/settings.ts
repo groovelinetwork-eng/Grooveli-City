@@ -7,7 +7,8 @@ export interface CitySettings {
   timeOfDay: 'auto' | 'day' | 'night';
   reducedMotion: boolean;
   labels: boolean;
-  joystick: boolean;
+  /** On-screen touch controls: auto-detect from input capabilities, always, or never. */
+  touchControls: 'auto' | 'on' | 'off';
   /** Turn the camera to show entrances hidden from the current view. */
   cameraAssist: boolean;
 }
@@ -18,7 +19,7 @@ export function defaultSettings(): CitySettings {
   const reduced = typeof window !== 'undefined' && window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   const coarse = typeof window !== 'undefined' && window.matchMedia?.('(pointer: coarse)').matches;
   const lowEnd = typeof navigator !== 'undefined' && (navigator.hardwareConcurrency ?? 8) <= 4;
-  return { quality: coarse || lowEnd ? 'low' : 'medium', timeOfDay: 'auto', reducedMotion: !!reduced, labels: true, joystick: !!coarse, cameraAssist: true };
+  return { quality: coarse || lowEnd ? 'low' : 'medium', timeOfDay: 'auto', reducedMotion: !!reduced, labels: true, touchControls: 'auto', cameraAssist: true };
 }
 
 export function loadSettings(): CitySettings {
@@ -26,13 +27,14 @@ export function loadSettings(): CitySettings {
   try {
     const raw = localStorage.getItem(KEY);
     if (!raw) return base;
-    const parsed = JSON.parse(raw) as Partial<CitySettings>;
+    const parsed = JSON.parse(raw) as Partial<CitySettings> & { joystick?: unknown };
     return {
       quality: ['low', 'medium', 'high'].includes(parsed.quality as string) ? (parsed.quality as CitySettings['quality']) : base.quality,
       timeOfDay: ['auto', 'day', 'night'].includes(parsed.timeOfDay as string) ? (parsed.timeOfDay as CitySettings['timeOfDay']) : base.timeOfDay,
       reducedMotion: typeof parsed.reducedMotion === 'boolean' ? parsed.reducedMotion : base.reducedMotion,
       labels: typeof parsed.labels === 'boolean' ? parsed.labels : base.labels,
-      joystick: typeof parsed.joystick === 'boolean' ? parsed.joystick : base.joystick,
+      // legacy `joystick: true` (explicitly enabled before auto-detection existed) → always on
+      touchControls: ['auto', 'on', 'off'].includes(parsed.touchControls as string) ? (parsed.touchControls as CitySettings['touchControls']) : parsed.joystick === true ? 'on' : base.touchControls,
       cameraAssist: typeof parsed.cameraAssist === 'boolean' ? parsed.cameraAssist : base.cameraAssist,
     };
   } catch {

@@ -1,6 +1,5 @@
-import { useRef, type MutableRefObject, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { initials } from '@grooveli/frontend-domain/public';
-import type { InputState } from '../scene/Player';
 import type { CityIdentity } from '../services/identity';
 
 /** Reference top-left card: avatar disc, name, level and (only when supplied) progress to next level. */
@@ -80,46 +79,6 @@ export function RoundButton({ label, icon, onClick, badge, dot }: { label: strin
 
 export function PinIcon() {
   return ICONS.pin;
-}
-
-/** Touch joystick writing screen-space axes into the shared input ref. */
-export function Joystick({ input }: { input: MutableRefObject<InputState> }) {
-  const base = useRef<HTMLDivElement>(null);
-  const knob = useRef<HTMLDivElement>(null);
-  const active = useRef<number | null>(null);
-  const update = (e: ReactPointerEvent) => {
-    const el = base.current;
-    if (!el) return;
-    const r = el.getBoundingClientRect();
-    const dx = (e.clientX - (r.left + r.width / 2)) / (r.width / 2);
-    const dy = (e.clientY - (r.top + r.height / 2)) / (r.height / 2);
-    const len = Math.max(1, Math.hypot(dx, dy));
-    input.current = { x: dx / len, y: -dy / len };
-    if (knob.current) knob.current.style.transform = `translate(${(dx / len) * 28}px, ${(dy / len) * 28}px)`;
-  };
-  const end = () => {
-    active.current = null;
-    input.current = { x: 0, y: 0 };
-    if (knob.current) knob.current.style.transform = '';
-  };
-  return (
-    <div
-      ref={base}
-      className="joystick"
-      role="application"
-      aria-label="Movement joystick"
-      onPointerDown={(e) => {
-        active.current = e.pointerId;
-        (e.target as HTMLElement).setPointerCapture?.(e.pointerId);
-        update(e);
-      }}
-      onPointerMove={(e) => active.current === e.pointerId && update(e)}
-      onPointerUp={end}
-      onPointerCancel={end}
-    >
-      <div ref={knob} className="joystick-knob" />
-    </div>
-  );
 }
 
 export function HudButton({ onClick, label, children, pressed }: { onClick: () => void; label: string; children: ReactNode; pressed?: boolean }) {

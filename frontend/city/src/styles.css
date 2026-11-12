@@ -898,3 +898,104 @@ kbd {
 @media (max-width: 720px) {
   .citymap-full .citymap-frame { height: auto; aspect-ratio: 186 / 124; }
 }
+
+/* ---------------------------------------------------------------- touch controls (phones & tablets) */
+.touch-ui {
+  --tb: max(12px, env(safe-area-inset-bottom));
+  --tl: max(12px, env(safe-area-inset-left));
+  --tr: max(12px, env(safe-area-inset-right));
+  --joy: 132px;
+  --rot: 60px;
+  --act: 84px;
+  --sml: 46px;
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.touch-ui.touch-tablet { --joy: 156px; --rot: 66px; --act: 92px; --sml: 50px; }
+.touch-ui.touch-phone.touch-landscape { --joy: 112px; --rot: 52px; --act: 70px; --sml: 42px; }
+.touch-ui .joystick {
+  position: absolute;
+  left: calc(var(--tl) + 8px);
+  bottom: calc(var(--tb) + 56px);
+  width: var(--joy);
+  height: var(--joy);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(9 17 40 / 45%) 0 55%, rgb(9 17 40 / 70%) 56%);
+  border: 2px solid rgb(79 224 245 / 55%);
+  display: grid;
+  place-items: center;
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+}
+.touch-ui .joystick.is-active { border-color: rgb(79 224 245 / 90%); box-shadow: 0 0 0 6px rgb(34 211 238 / 18%); }
+.touch-ui .joystick-knob {
+  width: calc(var(--joy) * 0.42);
+  height: calc(var(--joy) * 0.42);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 30%, #a5f3fc, var(--g-cyan-500, #06b6d4));
+  box-shadow: 0 4px 12px rgb(0 0 0 / 35%);
+  pointer-events: none;
+}
+.touch-cluster {
+  position: absolute;
+  right: calc(var(--tr) + 8px);
+  bottom: calc(var(--tb) + 56px);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 10px;
+}
+.touch-row { display: flex; gap: 10px; }
+.touch-btn {
+  pointer-events: auto;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
+  border-radius: 50%;
+  border: 1px solid rgb(79 224 245 / 45%);
+  background: rgb(9 17 40 / 82%);
+  color: #e8eefc;
+  font: 700 1.6rem/1 var(--g-font, system-ui);
+  display: grid;
+  place-items: center;
+  box-shadow: 0 6px 18px rgb(0 0 0 / 30%);
+}
+.touch-btn:active { background: rgb(14 116 144 / 92%); }
+.touch-btn:focus-visible { outline: 3px solid #67e8f9; outline-offset: 2px; }
+.touch-rotate { width: var(--rot); height: var(--rot); }
+.touch-small { width: var(--sml); height: var(--sml); font-size: 1.4rem; }
+.touch-act-slot { width: var(--act); height: var(--act); }
+.touch-act {
+  width: var(--act);
+  height: var(--act);
+  background: linear-gradient(160deg, #22d3ee, #0891b2);
+  border-color: rgb(165 243 252 / 80%);
+  color: #04202a;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.touch-act-icon { font-size: calc(var(--act) * 0.36); line-height: 1; }
+.touch-act-text { font-size: 0.72rem; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; }
+
+/* HUD adjustments while touch controls are shown */
+.hud.has-touch-ui .hud-legend { display: none; }
+.hud.has-touch-ui .touch-interact { display: none; }
+/* phone portrait: lift centre prompts / station bar above the control clusters */
+.hud.has-touch-ui.touch-phone.touch-portrait .prompt { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 300px); }
+.hud.has-touch-ui.touch-phone.touch-portrait .interior-bar { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 290px); max-width: calc(100vw - 24px); }
+.hud.has-touch-ui.touch-phone.touch-portrait .hud-assist { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 360px); white-space: normal; text-align: center; }
+/* tablets / landscape phones: keep the centre clear between the clusters */
+.hud.has-touch-ui.touch-tablet .interior-bar,
+.hud.has-touch-ui.touch-landscape .interior-bar { max-width: calc(100vw - 2 * (var(--g-touch-side, 190px))); }
+.hud.has-touch-ui.touch-tablet.touch-portrait .interior-bar { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 300px); max-width: calc(100vw - 24px); }
+.hud.has-touch-ui.touch-phone.touch-landscape .prompt { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 12px); }
+.hud.has-touch-ui.touch-phone.touch-landscape .hud-location { display: none; }
+.hud.has-touch-ui.touch-phone.touch-portrait .hud-district { top: calc(max(0px, env(safe-area-inset-top)) + 134px); bottom: auto; }
+.hud.has-touch-ui.touch-phone.touch-landscape .touch-cluster,
+.hud.has-touch-ui.touch-phone.touch-landscape .joystick { bottom: calc(max(12px, env(safe-area-inset-bottom)) + 8px); }

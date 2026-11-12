@@ -49,10 +49,12 @@ export interface CityCanvasProps {
 }
 
 /** Dev-only render statistics for performance checks (window.__grooveliRender). */
-function RenderStats() {
+function RenderStats({ player, view }: { player: MutableRefObject<PlayerState>; view: MutableRefObject<CityView> }) {
   const gl = useThree((s) => s.gl);
   useFrame(() => {
-    (window as unknown as { __grooveliRender?: { calls: number; triangles: number } }).__grooveliRender = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    const w = window as unknown as { __grooveliRender?: unknown; __grooveliPlayer?: unknown };
+    w.__grooveliRender = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
+    w.__grooveliPlayer = { x: player.current.pos.x, z: player.current.pos.z, yaw: view.current.yaw };
   });
   return null;
 }
@@ -79,7 +81,7 @@ export default function CityCanvas(props: CityCanvasProps) {
         }}
         aria-hidden="true"
       >
-        {import.meta.env.DEV ? <RenderStats /> : null}
+        {import.meta.env.DEV ? <RenderStats player={props.player} view={props.view} /> : null}
         {ownRig ? null : <color attach="background" args={[night ? '#070d1f' : '#cfe6f5']} />}
         <OrthographicCamera
           makeDefault

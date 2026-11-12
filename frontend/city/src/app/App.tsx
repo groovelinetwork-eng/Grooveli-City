@@ -15,7 +15,9 @@ import { nearestInteractable } from '../world/movement';
 import { CAMERA, createCityView } from '../scene/camera';
 import type { InputState, PlayerState } from '../scene/Player';
 import { Directory } from '../ui/Directory';
-import { DistrictPill, IdentityChip, Joystick, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { DistrictPill, IdentityChip, PinIcon, PresenceChip, RoundButton } from '../ui/Hud';
+import { TouchControls } from '../ui/TouchControls';
+import { useTouchControls } from './touchControls';
 import { CityMap } from '../ui/CityMap';
 import { BuildingPanel, DistrictPanel, HelpPanel, MarketsPanel, MenuPanel, NotificationsPanel, PeoplePanel, PlacesPanel, SettingsPanel, StationList, StationPanel, hqFor } from '../ui/panels';
 import { Panel, SimTag } from '../ui/Panel';
@@ -91,6 +93,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
   const view = useRef(createCityView());
   const [assistName, setAssistName] = useState<string | null>(null);
   const [featurePulse, setFeaturePulse] = useState(0);
+  const touch = useTouchControls(settings.touchControls);
   const marketsAdapter = useMemo(() => createMarketsAdapter(cityConfig.marketsFeedUrl), []);
   const marketFeed = useMarketFeed(marketsAdapter, cityConfig.marketsRefreshMs, !fallback);
   const marketsModel = useMemo(() => (marketFeed.snapshot ? marketsBoardModel(marketFeed.snapshot, { fallback: marketFeed.status === 'fallback' }) : null), [marketFeed]);
@@ -336,7 +339,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
         </SceneBoundary>
       </div>
 
-      <div id="city-hud" className="hud" role="region" aria-label="City controls">
+      <div id="city-hud" className={`hud${touch.show ? ` has-touch-ui touch-${touch.layout} touch-${touch.orientation}` : ''}`} role="region" aria-label="City controls">
         <div className="hud-top-left">
           <IdentityChip identity={identity} webHref={homeHref} />
           {cityConfig.dataMode === 'api' ? <span className="hud-chip warn">API mode: live city data unavailable</span> : null}
@@ -400,15 +403,18 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           move <kbd>E</kbd> interact <kbd>Esc</kbd> close
         </div>
 
-        {settings.joystick ? (
-          <>
-            <Joystick input={input} />
-            {nearby ? (
-              <button type="button" className="touch-interact" onClick={interact} aria-label={`Interact with ${nearby.label}`}>
-                E
-              </button>
-            ) : null}
-          </>
+        {touch.show ? (
+          <TouchControls
+            input={input}
+            view={view}
+            layout={touch.layout}
+            orientation={touch.orientation}
+            canRotate={!interior}
+            canZoom={!interior || interior.kind !== 'apartment'}
+            interactLabel={overlay ? null : interior ? nearStation?.label ?? null : nearby?.label ?? null}
+            onInteract={interact}
+            onZoom={(dir) => setZoom((z) => (dir > 0 ? Math.min(CAMERA.maxZoom, z + 3) : Math.max(CAMERA.minZoom, z - 3)))}
+          />
         ) : null}
 
         <p className="sr-only" aria-live="polite">
