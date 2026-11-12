@@ -1,6 +1,7 @@
 import { DISTRICTS, PARK_BLOCK } from '@grooveli/frontend-domain/public';
-import { blockBounds, type AABB, type Vec2 } from './layout';
+import { COLS, GRID_H, GRID_W, OUTER_ROAD, ROWS, blockBounds, type AABB, type Vec2 } from './layout';
 import { PLAZA_RECT, PLAZA_RING } from './plan';
+import { TRAFFIC_MIX, VEHICLE_SPECS, type VehicleKind } from './vehicles';
 
 /** Closed rectangular loop; position by distance travelled. */
 export interface Loop {
@@ -54,7 +55,31 @@ export function rand(i: number) {
   return x - Math.floor(x);
 }
 
-const BLOCKS: AABB[] = [...DISTRICTS.map((d) => blockBounds(d.grid)), blockBounds(PARK_BLOCK)];
+const BLOCK_GRIDS: { x: number; z: number }[] = [...DISTRICTS.map((d) => d.grid), PARK_BLOCK];
+const BLOCKS: AABB[] = BLOCK_GRIDS.map((g) => blockBounds(g));
+
+/** Lane centre distance from the kerb: a quarter of the road, so two lanes share it side by side. */
+function laneOffset(roadWidth: number) {
+  return Math.min(1.75, Math.max(0.95, roadWidth / 4));
+}
+
+/**
+ * Traffic loop around a block, in the right-hand quarter of each surrounding
+ * road. Neighbouring blocks circulate in opposite senses (checkerboard), so
+ * on every shared street both lanes flow the same way — no head-on traffic.
+ */
+export function trafficLoop(grid: { x: number; z: number }): Loop {
+  const b = blockBounds(grid);
+  const west = laneOffset(grid.x === 0 ? OUTER_ROAD : COLS[grid.x]![0] - COLS[grid.x - 1]![1]);
+  const east = laneOffset(grid.x === GRID_W - 1 ? OUTER_ROAD : COLS[grid.x + 1]![0] - COLS[grid.x]![1]);
+  const north = laneOffset(grid.z === 0 ? OUTER_ROAD : ROWS[grid.z]![0] - ROWS[grid.z - 1]![1]);
+  const south = laneOffset(grid.z === GRID_H - 1 ? OUTER_ROAD : ROWS[grid.z + 1]![0] - ROWS[grid.z]![1]);
+  const minX = b.minX - west;
+  const maxX = b.maxX + east;
+  const minZ = b.minZ - north;
+  const maxZ = b.maxZ + south;
+  return { cx: (minX + maxX) / 2, cz: (minZ + maxZ) / 2, hw: (maxX - minX) / 2, hd: (maxZ - minZ) / 2, clockwise: (grid.x + grid.z) % 2 === 0 };
+}
 
 export interface Walker {
   loop: Loop;
@@ -117,29 +142,39 @@ export function makePedestrians(count: number): Walker[] {
 }
 
 export interface Vehicle extends Walker {
-  kind: 'car' | 'taxi' | 'bus' | 'van' | 'exec';
+  kind: VehicleKind;
+  /** Road loop the vehicle circulates on (vehicles on one loop share a speed). */
+  loopId: number;
 }
 
-const CAR_COLORS = ['#2563eb', '#dc2626', '#f8fafc', '#0f766e', '#ea580c', '#94a3b8', '#7c3aed'];
-
-/** Vehicles circulate on the roads around blocks, one lane per direction. */
+/**
+ * Vehicles circulate on the roads around blocks (see trafficLoop).
+ * Kinds follow TRAFFIC_MIX; colours come from the design-board palette.
+ * Everyone on a loop drives at the slowest member's speed, so a car never
+ * catches up with (and drives through) a bus or truck ahead of it.
+ */
 export function makeVehicles(count: number): Vehicle[] {
-  return Array.from({ length: count }, (_, i) => {
-    const b = BLOCKS[(i * 5) % BLOCKS.length]!;
-    const clockwise = i % 2 === 0;
-    const loop = loopFromBounds(b, -1.5, clockwise);
-    const kind: Vehicle['kind'] = i % 7 === 3 ? 'bus' : i % 3 === 0 ? 'taxi' : i % 5 === 1 ? 'van' : i % 5 === 2 ? 'exec' : 'car';
+  const list = Array.from({ length: count }, (_, i): Vehicle => {
+    const loopId = (i * 5) % BLOCK_GRIDS.length;
+    const loop = trafficLoop(BLOCK_GRIDS[loopId]!);
+    const kind = TRAFFIC_MIX[i % TRAFFIC_MIX.length]!;
+    const spec = VEHICLE_SPECS[kind];
     return {
       loop,
+      loopId,
       offset: (i / count) * loopLength(loop) + rand(i + 21) * 6,
-      speed: kind === 'bus' ? 4.5 : 7,
-      color: kind === 'taxi' ? '#facc15' : kind === 'bus' ? '#2563eb' : kind === 'van' ? '#f8fafc' : kind === 'exec' ? '#111827' : CAR_COLORS[i % CAR_COLORS.length]!,
+      speed: spec.speed,
+      color: spec.colors[Math.floor(rand(i + 41) * spec.colors.length)]!,
       pants: '#111827',
       hair: '#111827',
       skin: '#111827',
       kind,
     };
   });
+  const slowest = new Map<number, number>();
+  for (const v of list) slowest.set(v.loopId, Math.min(slowest.get(v.loopId) ?? Infinity, v.speed));
+  for (const v of list) v.speed = slowest.get(v.loopId)!;
+  return list;
 }
 
 export interface Quality {
