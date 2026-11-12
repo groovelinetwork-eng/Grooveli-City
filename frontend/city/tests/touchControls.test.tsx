@@ -2,7 +2,7 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import type { MutableRefObject } from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 // jsdom has no WebGL: replace the R3F canvas with a stub so the DOM HUD can be tested.
-vi.mock('../src/scene/CityCanvas', () => ({ default: () => <div data-testid="canvas-stub" /> }));
+vi.mock('../src/scene/CityCanvas', async () => ({ default: (await import('./canvasStub')).CanvasStub }));
 
 import { App } from '../src/app/App';
 import { decideTouchControls, touchLayout } from '../src/app/touchControls';

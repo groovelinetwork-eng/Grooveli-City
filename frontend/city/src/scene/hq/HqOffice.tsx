@@ -30,27 +30,9 @@ import { StaticBatch } from '../interior/StaticBatch';
 import { Partitions, ZoneFloor, type ArchMaterials } from '../interior/architecture';
 import { StaffMember } from '../interior/Staff';
 import { useInteriorRig, type InteriorCameraConfig } from '../interior/useInteriorRig';
-import { brandMaterials, daySkyTexture, makeHqMaterials, type HqMaterials } from './hqMaterials';
-import {
-  analyticsTexture,
-  announcementsTexture,
-  artTexture,
-  cultureTexture,
-  deptSignTexture,
-  directoryTexture,
-  hiringStepsTexture,
-  hrInfoTexture,
-  logoTexture,
-  meetingScreenTexture,
-  noticeboardTexture,
-  onboardingTexture,
-  rugTexture,
-  scheduleTexture,
-  screenTexture,
-  vacanciesTexture,
-  wayfindingTexture,
-  whiteboardTexture,
-} from './hqTextures';
+import { daySkyTexture, type HqMaterials } from './hqMaterials';
+import { hqBrandMaterials, hqMaterials, hqTextureSet } from './hqResources';
+import { HqLights } from './HqLights';
 import {
   Armchair,
   Bench,
@@ -116,7 +98,7 @@ export const HQ_CAMERA: InteriorCameraConfig = {
 const PI = Math.PI;
 
 /** Demonstration identity when a building has no organisation data. */
-const DEMO_HQ: PublicHqProjection = {
+export const DEMO_HQ: PublicHqProjection = {
   organization: {
     id: 'demo-company',
     name: 'Demo Company',
@@ -166,52 +148,14 @@ export interface HqOfficeProps {
 export function HqOffice({ avatar, hq: hqIn, input, zoom, labels, reducedMotion, shadows, quality, shadowMap, onPick, onNearStation, labelPortal }: HqOfficeProps) {
   const hq = hqIn ?? DEMO_HQ;
   const org = hq.organization;
-  const m = useMemo(makeHqMaterials, []);
-  const b = useMemo(() => brandMaterials(org.logoColor), [org.logoColor]);
+  const m = hqMaterials();
+  const b = hqBrandMaterials(org.logoColor);
   const arch = useMemo<ArchMaterials>(
     () => ({ darkFrame: m.darkFrame, glassPane: m.glassPane, frosted: m.frosted, stainless: m.stainless, aluminium: m.aluminium, dividerFabric: m.navyFabric, shell: m.charcoal, innerWall: m.officeWall, coping: m.stoneTop, trim: m.trim }),
     [m],
   );
-  const T = useMemo(
-    () => ({
-      logo: logoTexture(org),
-      logoDark: logoTexture(org, true),
-      culture: cultureTexture(org),
-      vacancies: vacanciesTexture(hq),
-      how: hiringStepsTexture(org.logoColor),
-      notices: announcementsTexture(hq),
-      directory: directoryTexture(hq),
-      hrInfo: hrInfoTexture(),
-      onboarding: onboardingTexture(org.logoColor),
-      analytics: analyticsTexture(org.logoColor),
-      meeting: meetingScreenTexture(org),
-      schedule: scheduleTexture(org.logoColor),
-      noticeboard: noticeboardTexture(org),
-      whiteboard: whiteboardTexture(),
-      screens: [0, 1, 2, 3, 4, 5].map(screenTexture),
-      art: [artTexture(1)],
-      rugs: [rugTexture(0), rugTexture(1), rugTexture(2)],
-      depts: BAYS.map((_, i) => deptSignTexture(hq.departments[i] ?? ['Team space', 'Project room', 'Hot desks'][i]!, org.logoColor)),
-      wayLobby: wayfindingTexture([
-        ['Workspace & departments', '↑'],
-        ['HR & employee services', '↑'],
-        ['Talent hub & lounge', '←'],
-      ]),
-      wayCorridor: wayfindingTexture([
-        ['Executive office', '↑'],
-        ['Conference room', '←'],
-        ['Interview room · Lounge', '↓'],
-      ]),
-      services: wayfindingTexture([['Employee services', '↓']]),
-    }),
-    [hq, org],
-  );
-  useEffect(
-    () => () => {
-      Object.values(T).flat().forEach((t) => t.dispose());
-    },
-    [T],
-  );
+  // Drawn once per company and reused on every visit (and prepared before entry: see hqResources.ts).
+  const T = hqTextureSet(hq);
 
   const [hover, setHover] = useState<string | null>(null);
   const rig = useInteriorRig({
@@ -340,27 +284,7 @@ export function HqOffice({ avatar, hq: hqIn, input, zoom, labels, reducedMotion,
       <PerspectiveCamera ref={rig.cam} makeDefault fov={HQ_CAMERA.fov} near={0.5} far={250} position={[HQ_SPAWN.x + 11, 12, HQ_SPAWN.z + 11]} />
       <SceneBackground texture={daySkyTexture()} />
 
-      {/* lighting: bright working-hours daylight, warm accents */}
-      <hemisphereLight args={['#fffaf0', '#8c7a64', 1.05]} />
-      <ambientLight intensity={0.16} color="#fff3e0" />
-      <directionalLight
-        position={[9, 16, 11]}
-        intensity={1.55}
-        color="#fff4e2"
-        castShadow={shadows}
-        shadow-mapSize={[Math.max(512, shadowMap), Math.max(512, shadowMap)]}
-        shadow-camera-left={-15}
-        shadow-camera-right={15}
-        shadow-camera-top={14}
-        shadow-camera-bottom={-14}
-        shadow-camera-far={60}
-        shadow-bias={-0.0004}
-        shadow-normalBias={0.03}
-      />
-      <pointLight position={[6.7, 2.6, 4.2]} intensity={1.3} distance={9} decay={2} color="#ffd9a8" />
-      <pointLight position={[0, 2.6, 0.7]} intensity={1.0} distance={9} decay={2} color="#fff0d8" />
-      <pointLight position={[-7.4, 2.3, -1.1]} intensity={0.8} distance={6} decay={2} color="#ffd9a8" />
-      <pointLight position={[-6.6, 2.4, 6.4]} intensity={0.9} distance={7} decay={2} color="#ffcf94" />
+      <HqLights shadows={shadows} shadowMap={shadowMap} />
 
       <StaticBatch>
         {/* ---- exterior: lawn, paving apron, entrance, landscaping */}

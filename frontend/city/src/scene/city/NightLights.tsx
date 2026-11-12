@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef, type MutableRefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from '../sceneActive';
 import * as THREE from 'three';
 import type { CityProps } from '../../world/props';
 import { PLACED_BUILDINGS, groundHeight, type Vec2 } from '../../world/layout';
@@ -70,7 +70,7 @@ export function NightLights({ props, density, focus, maxLights }: { props: CityP
   );
   const lights = useRef<(THREE.PointLight | null)[]>([]);
   const last = useRef(-1);
-  useFrame(({ clock }) => {
+  useActiveFrame(({ clock }) => {
     if (!maxLights || clock.elapsedTime - last.current < 0.4) return;
     last.current = clock.elapsedTime;
     const f = focus.current;

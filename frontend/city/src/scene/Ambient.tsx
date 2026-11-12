@@ -1,5 +1,5 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { makePedestrians, pointOnLoop } from '../world/ambient';
@@ -95,7 +95,7 @@ export function Ambient({ pedestrians, vehicles, reducedMotion, night }: { pedes
 
   useLayoutEffect(() => place(time.current));
 
-  useFrame((_, dt) => {
+  useActiveFrame((_, dt) => {
     if (reducedMotion) return; // ambient motion paused, positions stay put
     time.current += Math.min(dt, 0.1);
     place(time.current);

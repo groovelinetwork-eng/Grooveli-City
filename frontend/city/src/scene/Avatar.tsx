@@ -1,8 +1,9 @@
 import { forwardRef, useMemo, useRef, type MutableRefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import * as THREE from 'three';
 import type { Group } from 'three';
 import { StaticBatch } from './interior/StaticBatch';
+import { sharedGeometry, sharedStandard } from './sharedGeometry';
 import { ACCESSORIES, HAIR_COLORS, HAIR_STYLES, OUTFIT_COLORS, OUTFITS, SKIN_TONES, type AvatarConfig } from '@grooveli/frontend-domain/public';
 
 /**
@@ -53,17 +54,17 @@ export const Avatar = forwardRef<Group, AvatarProps>(function Avatar({ avatar, h
   const mat = useMemo(() => {
     const pantsHex = PANTS[outfit] || new THREE.Color(outfitHex).offsetHSL(0, 0, -0.12).getStyle();
     return {
-      skin: new THREE.MeshStandardMaterial({ color: skinHex, roughness: 0.6 }),
-      hair: new THREE.MeshStandardMaterial({ color: hairHex, roughness: 0.75 }),
-      top: new THREE.MeshStandardMaterial({ color: outfitHex, roughness: 0.75 }),
-      pants: new THREE.MeshStandardMaterial({ color: pantsHex, roughness: 0.8 }),
-      shirt: new THREE.MeshStandardMaterial({ color: '#f8fafc', roughness: 0.7 }),
-      shoe: new THREE.MeshStandardMaterial({ color: '#1c1917', roughness: 0.45 }),
-      eye: new THREE.MeshStandardMaterial({ color: '#111111', roughness: 0.2 }),
-      accent: new THREE.MeshStandardMaterial({ color: '#1e293b', roughness: 0.4, metalness: 0.3 }),
-      tie: new THREE.MeshStandardMaterial({ color: '#b91c1c', roughness: 0.5 }),
-      lanyard: new THREE.MeshStandardMaterial({ color: '#22d3ee', emissive: '#22d3ee', emissiveIntensity: 0.3 }),
-      cap: new THREE.MeshStandardMaterial({ color: '#be123c', roughness: 0.6 }),
+      skin: sharedStandard(skinHex, 0.6),
+      hair: sharedStandard(hairHex, 0.75),
+      top: sharedStandard(outfitHex, 0.75),
+      pants: sharedStandard(pantsHex, 0.8),
+      shirt: sharedStandard('#f8fafc', 0.7),
+      shoe: sharedStandard('#1c1917', 0.45),
+      eye: sharedStandard('#111111', 0.2),
+      accent: sharedStandard('#1e293b', 0.4, 0.3),
+      tie: sharedStandard('#b91c1c', 0.5),
+      lanyard: sharedStandard('#22d3ee', 1, 0, '#22d3ee', 0.3),
+      cap: sharedStandard('#be123c', 0.6),
     };
   }, [skinHex, hairHex, outfitHex, outfit]);
 
@@ -80,7 +81,7 @@ export const Avatar = forwardRef<Group, AvatarProps>(function Avatar({ avatar, h
   const amp = useRef(0);
 
   const seated = pose === 'sit';
-  useFrame(({ clock }, dt) => {
+  useActiveFrame(({ clock }, dt) => {
     const t = still ? 0 : clock.elapsedTime;
     if (!still) {
       const target = seated ? 0 : Math.min(1, motion?.current ?? 0);
@@ -149,77 +150,47 @@ export const Avatar = forwardRef<Group, AvatarProps>(function Avatar({ avatar, h
           [[legR, kneeR], 1],
         ] as const).map(([r, s]) => (
           <group key={s} ref={r[0]} position={[s * 0.095 * bw, hipY, 0]}>
-            <mesh position={[0, -0.2, 0]} material={mat.pants} castShadow={castShadows}>
-              <capsuleGeometry args={[0.072 * bw, 0.3, 4, 12]} />
-            </mesh>
+            <mesh position={[0, -0.2, 0]} material={mat.pants} castShadow={castShadows} geometry={sharedGeometry('capsule', 0.072 * bw, 0.3, 4, 12)} />
             <group ref={r[1]} position={[0, -0.4, 0]}>
-              <mesh position={[0, -0.2, 0]} material={mat.pants} castShadow={castShadows}>
-                <capsuleGeometry args={[0.064 * bw, 0.34, 4, 12]} />
-              </mesh>
-              <mesh position={[0, -0.45, 0.04]} rotation-x={Math.PI / 2} scale={[1.1, 1, 0.8]} material={mat.shoe} castShadow={castShadows}>
-                <capsuleGeometry args={[0.055, 0.11, 4, 10]} />
-              </mesh>
+              <mesh position={[0, -0.2, 0]} material={mat.pants} castShadow={castShadows} geometry={sharedGeometry('capsule', 0.064 * bw, 0.34, 4, 12)} />
+              <mesh position={[0, -0.45, 0.04]} rotation-x={Math.PI / 2} scale={[1.1, 1, 0.8]} material={mat.shoe} castShadow={castShadows} geometry={sharedGeometry('capsule', 0.055, 0.11, 4, 10)} />
             </group>
           </group>
         ))}
         {/* torso */}
         <group ref={chest} position={[0, 1.18, 0]}>
           <StaticBatch key={look}>
-          <mesh scale={[bw, 1, 0.62]} material={mat.top} castShadow={castShadows}>
-            <capsuleGeometry args={[0.17, 0.34, 6, 16]} />
-          </mesh>
+          <mesh scale={[bw, 1, 0.62]} material={mat.top} castShadow={castShadows} geometry={sharedGeometry('capsule', 0.17, 0.34, 6, 16)} />
           {longTop ? (
-            <mesh position={[0, -0.36, 0]} scale={[bw, 1, 0.7]} material={mat.top} castShadow={castShadows}>
-              <cylinderGeometry args={[0.19, 0.24, 0.42, 18]} />
-            </mesh>
+            <mesh position={[0, -0.36, 0]} scale={[bw, 1, 0.7]} material={mat.top} castShadow={castShadows} geometry={sharedGeometry('cylinder', 0.19, 0.24, 0.42, 18)} />
           ) : (
-            <mesh position={[0, -0.28, 0]} scale={[bw, 1, 0.66]} material={mat.pants} castShadow={castShadows}>
-              <cylinderGeometry args={[0.165, 0.17, 0.12, 16]} />
-            </mesh>
+            <mesh position={[0, -0.28, 0]} scale={[bw, 1, 0.66]} material={mat.pants} castShadow={castShadows} geometry={sharedGeometry('cylinder', 0.165, 0.17, 0.12, 16)} />
           )}
           {outfit === 'Business suit' ? (
             <>
-              <mesh position={[0, 0.1, 0.098]} rotation-x={-0.05} material={mat.shirt}>
-                <coneGeometry args={[0.07, 0.22, 3]} />
-              </mesh>
-              <mesh position={[0, 0.06, 0.112]} material={mat.tie}>
-                <boxGeometry args={[0.035, 0.2, 0.01]} />
-              </mesh>
+              <mesh position={[0, 0.1, 0.098]} rotation-x={-0.05} material={mat.shirt} geometry={sharedGeometry('cone', 0.07, 0.22, 3)} />
+              <mesh position={[0, 0.06, 0.112]} material={mat.tie} geometry={sharedGeometry('box', 0.035, 0.2, 0.01)} />
             </>
           ) : null}
           {outfit === 'Smart casual' || outfit === 'Scrubs' ? (
-            <mesh position={[0, 0.2, 0.06]} rotation-x={-0.4} material={outfit === 'Scrubs' ? mat.top : mat.shirt}>
-              <torusGeometry args={[0.075, 0.018, 6, 16, Math.PI]} />
-            </mesh>
+            <mesh position={[0, 0.2, 0.06]} rotation-x={-0.4} material={outfit === 'Scrubs' ? mat.top : mat.shirt} geometry={sharedGeometry('torus', 0.075, 0.018, 6, 16, Math.PI)} />
           ) : null}
           {outfit === 'Hoodie' ? (
             <>
-              <mesh position={[0, 0.24, -0.06]} rotation-x={0.5} material={mat.top}>
-                <torusGeometry args={[0.1, 0.04, 8, 18]} />
-              </mesh>
-              <mesh position={[0, -0.1, 0.1]} material={mat.top}>
-                <boxGeometry args={[0.2, 0.09, 0.02]} />
-              </mesh>
+              <mesh position={[0, 0.24, -0.06]} rotation-x={0.5} material={mat.top} geometry={sharedGeometry('torus', 0.1, 0.04, 8, 18)} />
+              <mesh position={[0, -0.1, 0.1]} material={mat.top} geometry={sharedGeometry('box', 0.2, 0.09, 0.02)} />
             </>
           ) : null}
           {outfit === 'Creative jacket' ? (
-            <mesh position={[0, 0.02, 0.102]} material={mat.shirt}>
-              <boxGeometry args={[0.1, 0.34, 0.01]} />
-            </mesh>
+            <mesh position={[0, 0.02, 0.102]} material={mat.shirt} geometry={sharedGeometry('box', 0.1, 0.34, 0.01)} />
           ) : null}
           {outfit === 'Kaftan' ? (
-            <mesh position={[0, 0.16, 0.104]} material={mat.lanyard}>
-              <boxGeometry args={[0.05, 0.16, 0.008]} />
-            </mesh>
+            <mesh position={[0, 0.16, 0.104]} material={mat.lanyard} geometry={sharedGeometry('box', 0.05, 0.16, 0.008)} />
           ) : null}
           {accessory === 'Lanyard' ? (
             <>
-              <mesh position={[0, 0.12, 0.05]} rotation-x={-0.25} material={mat.lanyard}>
-                <torusGeometry args={[0.09, 0.008, 6, 20, Math.PI]} />
-              </mesh>
-              <mesh position={[0, 0.0, 0.11]} material={mat.shirt}>
-                <boxGeometry args={[0.06, 0.08, 0.01]} />
-              </mesh>
+              <mesh position={[0, 0.12, 0.05]} rotation-x={-0.25} material={mat.lanyard} geometry={sharedGeometry('torus', 0.09, 0.008, 6, 20, Math.PI)} />
+              <mesh position={[0, 0.0, 0.11]} material={mat.shirt} geometry={sharedGeometry('box', 0.06, 0.08, 0.01)} />
             </>
           ) : null}
           </StaticBatch>
@@ -230,75 +201,45 @@ export const Avatar = forwardRef<Group, AvatarProps>(function Avatar({ avatar, h
           [armR, 1],
         ] as const).map(([r, s]) => (
           <group key={s} ref={r} position={[s * shoulderX, 1.4, 0]}>
-            <mesh position={[s * 0.02, -0.24, 0]} material={mat.top} castShadow={castShadows}>
-              <capsuleGeometry args={[0.052 * bw, 0.4, 4, 10]} />
-            </mesh>
-            <mesh position={[s * 0.025, -0.53, 0.01]} material={mat.skin} castShadow={castShadows}>
-              <sphereGeometry args={[0.052, 12, 10]} />
-            </mesh>
+            <mesh position={[s * 0.02, -0.24, 0]} material={mat.top} castShadow={castShadows} geometry={sharedGeometry('capsule', 0.052 * bw, 0.4, 4, 10)} />
+            <mesh position={[s * 0.025, -0.53, 0.01]} material={mat.skin} castShadow={castShadows} geometry={sharedGeometry('sphere', 0.052, 12, 10)} />
           </group>
         ))}
         {/* neck + head */}
-        <mesh position={[0, 1.5, 0]} material={mat.skin}>
-          <cylinderGeometry args={[0.048, 0.055, 0.1, 12]} />
-        </mesh>
+        <mesh position={[0, 1.5, 0]} material={mat.skin} geometry={sharedGeometry('cylinder', 0.048, 0.055, 0.1, 12)} />
         <group ref={head} position={[0, 1.66, 0.005]}>
           <StaticBatch key={look}>
-          <mesh scale={[0.95, 1.06, 1]} material={mat.skin} castShadow={castShadows}>
-            <sphereGeometry args={[0.15, 24, 18]} />
-          </mesh>
+          <mesh scale={[0.95, 1.06, 1]} material={mat.skin} castShadow={castShadows} geometry={sharedGeometry('sphere', 0.15, 24, 18)} />
           {[-1, 1].map((s) => (
             <group key={s}>
-              <mesh position={[s * 0.144, -0.005, -0.005]} scale={[0.5, 1, 0.75]} material={mat.skin}>
-                <sphereGeometry args={[0.035, 10, 8]} />
-              </mesh>
-              <mesh position={[s * 0.05, 0.01, 0.135]} material={mat.eye}>
-                <sphereGeometry args={[0.018, 10, 8]} />
-              </mesh>
-              <mesh position={[s * 0.05, 0.048, 0.136]} rotation-z={s * -0.12} material={mat.hair}>
-                <boxGeometry args={[0.05, 0.011, 0.01]} />
-              </mesh>
+              <mesh position={[s * 0.144, -0.005, -0.005]} scale={[0.5, 1, 0.75]} material={mat.skin} geometry={sharedGeometry('sphere', 0.035, 10, 8)} />
+              <mesh position={[s * 0.05, 0.01, 0.135]} material={mat.eye} geometry={sharedGeometry('sphere', 0.018, 10, 8)} />
+              <mesh position={[s * 0.05, 0.048, 0.136]} rotation-z={s * -0.12} material={mat.hair} geometry={sharedGeometry('box', 0.05, 0.011, 0.01)} />
             </group>
           ))}
-          <mesh position={[0, -0.025, 0.148]} material={mat.skin}>
-            <sphereGeometry args={[0.02, 8, 6]} />
-          </mesh>
-          <mesh position={[0, -0.07, 0.132]} rotation-x={0.25} material={mat.eye}>
-            <torusGeometry args={[0.025, 0.005, 4, 12, Math.PI]} />
-          </mesh>
+          <mesh position={[0, -0.025, 0.148]} material={mat.skin} geometry={sharedGeometry('sphere', 0.02, 8, 6)} />
+          <mesh position={[0, -0.07, 0.132]} rotation-x={0.25} material={mat.eye} geometry={sharedGeometry('torus', 0.025, 0.005, 4, 12, Math.PI)} />
           <Hair style={style} mat={mat.hair} />
           {accessory === 'Glasses' ? (
             <group position={[0, 0.012, 0.142]}>
               {[-1, 1].map((s) => (
-                <mesh key={s} position={[s * 0.05, 0, 0]} material={mat.accent}>
-                  <torusGeometry args={[0.03, 0.005, 6, 16]} />
-                </mesh>
+                <mesh key={s} position={[s * 0.05, 0, 0]} material={mat.accent} geometry={sharedGeometry('torus', 0.03, 0.005, 6, 16)} />
               ))}
-              <mesh material={mat.accent}>
-                <boxGeometry args={[0.04, 0.006, 0.006]} />
-              </mesh>
+              <mesh material={mat.accent} geometry={sharedGeometry('box', 0.04, 0.006, 0.006)} />
             </group>
           ) : null}
           {accessory === 'Headphones' ? (
             <>
-              <mesh position={[0, 0.03, 0]} rotation-z={Math.PI / 2} rotation-y={Math.PI / 2} material={mat.accent}>
-                <torusGeometry args={[0.17, 0.016, 6, 24, Math.PI]} />
-              </mesh>
+              <mesh position={[0, 0.03, 0]} rotation-z={Math.PI / 2} rotation-y={Math.PI / 2} material={mat.accent} geometry={sharedGeometry('torus', 0.17, 0.016, 6, 24, Math.PI)} />
               {[-1, 1].map((s) => (
-                <mesh key={s} position={[s * 0.16, 0, 0]} rotation-z={Math.PI / 2} material={mat.accent}>
-                  <cylinderGeometry args={[0.05, 0.05, 0.04, 16]} />
-                </mesh>
+                <mesh key={s} position={[s * 0.16, 0, 0]} rotation-z={Math.PI / 2} material={mat.accent} geometry={sharedGeometry('cylinder', 0.05, 0.05, 0.04, 16)} />
               ))}
             </>
           ) : null}
           {accessory === 'Cap' ? (
             <>
-              <mesh position={[0, 0.06, 0]} material={mat.cap}>
-                <sphereGeometry args={[0.158, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2]} />
-              </mesh>
-              <mesh position={[0, 0.07, 0.14]} rotation-x={0.12} material={mat.cap}>
-                <boxGeometry args={[0.2, 0.012, 0.12]} />
-              </mesh>
+              <mesh position={[0, 0.06, 0]} material={mat.cap} geometry={sharedGeometry('sphere', 0.158, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2)} />
+              <mesh position={[0, 0.07, 0.14]} rotation-x={0.12} material={mat.cap} geometry={sharedGeometry('box', 0.2, 0.012, 0.12)} />
             </>
           ) : null}
           </StaticBatch>
@@ -314,32 +255,24 @@ function Hair({ style, mat }: { style: string; mat: THREE.Material }) {
       return null;
     case 'Afro':
       return (
-        <mesh position={[0, 0.07, -0.02]} scale={[1.1, 0.95, 1.05]} material={mat} castShadow>
-          <sphereGeometry args={[0.2, 20, 16]} />
-        </mesh>
+        <mesh position={[0, 0.07, -0.02]} scale={[1.1, 0.95, 1.05]} material={mat} castShadow geometry={sharedGeometry('sphere', 0.2, 20, 16)} />
       );
     case 'Buzz':
       return (
-        <mesh position={[0, 0.01, -0.004]} scale={[0.97, 1.05, 1.01]} material={mat}>
-          <sphereGeometry args={[0.152, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2.2]} />
-        </mesh>
+        <mesh position={[0, 0.01, -0.004]} scale={[0.97, 1.05, 1.01]} material={mat} geometry={sharedGeometry('sphere', 0.152, 20, 12, 0, Math.PI * 2, 0, Math.PI / 2.2)} />
       );
     case 'Bun':
       return (
         <>
           <Cap mat={mat} />
-          <mesh position={[0, 0.17, -0.07]} material={mat} castShadow>
-            <sphereGeometry args={[0.065, 14, 10]} />
-          </mesh>
+          <mesh position={[0, 0.17, -0.07]} material={mat} castShadow geometry={sharedGeometry('sphere', 0.065, 14, 10)} />
         </>
       );
     case 'Long':
       return (
         <>
           <Cap mat={mat} />
-          <mesh position={[0, -0.12, -0.06]} scale={[1, 1, 0.55]} material={mat} castShadow>
-            <capsuleGeometry args={[0.14, 0.2, 4, 12]} />
-          </mesh>
+          <mesh position={[0, -0.12, -0.06]} scale={[1, 1, 0.55]} material={mat} castShadow geometry={sharedGeometry('capsule', 0.14, 0.2, 4, 12)} />
         </>
       );
     case 'Braids':
@@ -350,9 +283,7 @@ function Hair({ style, mat }: { style: string; mat: THREE.Material }) {
           {Array.from({ length: 9 }, (_, i) => {
             const a = Math.PI * 0.15 + (i / 8) * Math.PI * 0.7;
             return (
-              <mesh key={i} position={[Math.cos(a) * 0.14, -0.1, -Math.sin(a) * 0.12]} material={mat} castShadow>
-                <capsuleGeometry args={[style === 'Locs' ? 0.024 : 0.018, 0.24, 3, 6]} />
-              </mesh>
+              <mesh key={i} position={[Math.cos(a) * 0.14, -0.1, -Math.sin(a) * 0.12]} material={mat} castShadow geometry={sharedGeometry('capsule', style === 'Locs' ? 0.024 : 0.018, 0.24, 3, 6)} />
             );
           })}
         </>
@@ -364,8 +295,6 @@ function Hair({ style, mat }: { style: string; mat: THREE.Material }) {
 
 function Cap({ mat }: { mat: THREE.Material }) {
   return (
-    <mesh position={[0, 0.025, -0.012]} scale={[1, 1.02, 1.04]} material={mat} castShadow>
-      <sphereGeometry args={[0.158, 22, 14, 0, Math.PI * 2, 0, Math.PI / 1.85]} />
-    </mesh>
+    <mesh position={[0, 0.025, -0.012]} scale={[1, 1.02, 1.04]} material={mat} castShadow geometry={sharedGeometry('sphere', 0.158, 22, 14, 0, Math.PI * 2, 0, Math.PI / 1.85)} />
   );
 }

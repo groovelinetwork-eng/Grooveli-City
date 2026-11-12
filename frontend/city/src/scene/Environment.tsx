@@ -1,5 +1,5 @@
 import { useMemo, useRef, type MutableRefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import { Html } from '@react-three/drei';
 import * as THREE from 'three';
 import { DISTRICTS, type DistrictId } from '@grooveli/frontend-domain/public';
@@ -72,7 +72,7 @@ export function Environment({
 }) {
   const props = useMemo(buildCityProps, []);
   const beacon = useRef<THREE.Group>(null);
-  useFrame((_, dt) => {
+  useActiveFrame((_, dt) => {
     if (beacon.current && !reducedMotion) beacon.current.children.forEach((ch) => (ch.rotation.y += dt * 0.8));
   });
 

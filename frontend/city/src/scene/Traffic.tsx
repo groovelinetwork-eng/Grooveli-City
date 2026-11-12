@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import * as THREE from 'three';
 import { makeVehicles, pointOnLoop, type Vehicle } from '../world/ambient';
 import { VEHICLE_KINDS, VEHICLE_SPECS, type VehicleKind } from '../world/vehicles';
@@ -128,7 +128,7 @@ export function Traffic({ count, reducedMotion, night }: { count: number; reduce
 
   useLayoutEffect(() => place(time.current));
 
-  useFrame((state, dt) => {
+  useActiveFrame((state, dt) => {
     // level of detail: all vehicles share one on-screen scale in the orthographic view
     const want: 0 | 1 = state.camera.zoom < VEHICLE_LOD_ZOOM ? 1 : 0;
     if (want !== lod.current) {

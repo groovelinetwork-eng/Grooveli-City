@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 // jsdom has no WebGL: replace the R3F canvas with a stub so the DOM HUD can be tested.
-vi.mock('../src/scene/CityCanvas', () => ({ default: () => <div data-testid="canvas-stub" /> }));
+vi.mock('../src/scene/CityCanvas', async () => ({ default: (await import('./canvasStub')).CanvasStub }));
 
 import { App } from '../src/app/App';
 import { canUseWebGL } from '../src/app/webgl';
@@ -71,7 +71,8 @@ describe('3D city HUD (canvas stubbed)', () => {
     await screen.findByTestId('canvas-stub');
     const panel = screen.getByRole('dialog', { name: 'Kestrel Systems HQ' });
     await userEvent.click(within(panel).getByRole('button', { name: /Enter headquarters/ }));
-    expect(screen.getByText(/Inside Kestrel Systems HQ/)).toBeInTheDocument();
+    // the room is built behind the door transition, then shown
+    expect(await screen.findByText(/Inside Kestrel Systems HQ/)).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Careers board/ }));
     const careers = screen.getByRole('dialog', { name: /Careers board/ });
     expect(within(careers).getAllByRole('link').some((a) => a.getAttribute('href')!.includes('/opportunities/job-k-'))).toBe(true);
@@ -102,7 +103,8 @@ describe('3D city HUD (canvas stubbed)', () => {
     act(() => {
       fireEvent.keyDown(window, { code: 'Escape', key: 'Escape' });
     });
-    expect(screen.queryByText(/Inside Kestrel/)).not.toBeInTheDocument();
+    // leaving also goes through the door transition
+    await waitFor(() => expect(screen.queryByText(/Inside Kestrel/)).not.toBeInTheDocument());
   });
 
   it('switches to the directory from settings', async () => {

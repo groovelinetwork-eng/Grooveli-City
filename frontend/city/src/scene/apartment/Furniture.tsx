@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
-import { RoundedBox } from '@react-three/drei';
 import * as THREE from 'three';
 import type { ApartmentMaterials } from './materials';
+import { roundedBoxGeometry } from '../interior/roundedBox';
 
 /**
  * Apartment furniture library. Every piece sits on y = 0 with its front facing
@@ -17,7 +17,7 @@ type V3 = [number, number, number];
 
 export function RB({ size, at, mat, r = 0.04, rot }: { size: V3; at: V3; mat: THREE.Material; r?: number; rot?: V3 }) {
   return (
-    <RoundedBox args={size} radius={Math.min(r, Math.min(...size) / 2 - 0.001)} smoothness={3} position={at} rotation={rot} material={mat} castShadow receiveShadow />
+    <mesh geometry={roundedBoxGeometry(size[0], size[1], size[2], Math.min(r, Math.min(...size) / 2 - 0.001), 3)} position={at} rotation={rot} material={mat} castShadow receiveShadow />
   );
 }
 

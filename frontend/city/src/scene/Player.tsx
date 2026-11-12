@@ -1,5 +1,6 @@
 import { useRef, type MutableRefObject } from 'react';
-import { useFrame, useThree } from '@react-three/fiber';
+import { useThree } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import type { Group, OrthographicCamera } from 'three';
 import type { AvatarConfig } from '@grooveli/frontend-domain/public';
 import { Avatar } from './Avatar';
@@ -67,7 +68,7 @@ export function Player({
   const baseYaw = useRef(0);
   const spinning = useRef(false);
 
-  useFrame((state, dt) => {
+  useActiveFrame((state, dt) => {
     const p = player.current;
     const v = view.current;
 

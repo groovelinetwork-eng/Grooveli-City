@@ -1,5 +1,5 @@
 import { useLayoutEffect, useRef, type MutableRefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import type { DirectionalLight } from 'three';
 import type { Vec2 } from '../world/layout';
 
@@ -24,7 +24,7 @@ export function Sun({ focus, night, shadows, mapSize }: { focus: MutableRefObjec
     l.shadow.bias = -0.0004;
     l.shadow.normalBias = 0.04;
   }, [mapSize]);
-  useFrame(() => {
+  useActiveFrame(() => {
     const l = light.current;
     if (!l) return;
     const x = Math.round(focus.current.x / 2) * 2;

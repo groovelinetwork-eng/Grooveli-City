@@ -1,5 +1,5 @@
 import { useRef, useState, type MutableRefObject } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useActiveFrame } from './sceneActive';
 import { Html } from '@react-three/drei';
 import type { PresenceProjection } from '@grooveli/frontend-domain/public';
 import { Avatar } from './Avatar';
@@ -19,7 +19,7 @@ export const PRESENCE_LABEL_RADIUS = 7;
 export function PresenceAvatars({ people, labels, labelPortal, player }: { people: PresenceProjection[]; labels: boolean; labelPortal: LabelPortal; player: MutableRefObject<PlayerState> }) {
   const [near, setNear] = useState<Set<string>>(() => new Set());
   const last = useRef(0);
-  useFrame(({ clock }) => {
+  useActiveFrame(({ clock }) => {
     if (!labels || clock.elapsedTime - last.current < 0.3) return;
     last.current = clock.elapsedTime;
     const p = player.current.pos;
