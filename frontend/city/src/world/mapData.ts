@@ -1,6 +1,7 @@
 import { DISTRICTS, PARK_BLOCK, type DistrictId } from '@grooveli/frontend-domain/public';
 import { ALL_BUILDINGS, ROADS, SIDEWALK, WORLD_BOUNDS, blockBounds, districtLabelPoint, type AABB, type PlacedBuilding, type Vec2 } from './layout';
 import { MINOR_STREETS, PLAZA_RECT, PLAZA_RING } from './plan';
+import { GAMES_PAVILION, GAME_DECKS } from './gamesZone';
 import { buildCityProps } from './props';
 import { PARK_POND, buildMarkings } from './streets';
 
@@ -75,6 +76,8 @@ export interface CityMapModel {
   districts: MapDistrict[];
   park: { block: AABB; lot: AABB; pond: { x: number; z: number; r: number } };
   plaza: { rect: AABB; ring: typeof PLAZA_RING };
+  /** Grooveli Games Zone on the plaza (pavilion + game decks). */
+  games: { name: string; pavilion: { x: number; z: number; r: number }; decks: (AABB & { id: string })[] };
   buildings: MapBuilding[];
   trees: Vec2[];
 }
@@ -129,6 +132,11 @@ export function cityMapModel(): CityMapModel {
       pond: { x: (parkBlock.minX + parkBlock.maxX) / 2 + PARK_POND.dx, z: (parkBlock.minZ + parkBlock.maxZ) / 2 + PARK_POND.dz, r: PARK_POND.r },
     },
     plaza: { rect: PLAZA_RECT, ring: PLAZA_RING },
+    games: {
+      name: 'Grooveli Games Hub',
+      pavilion: { x: GAMES_PAVILION.x, z: GAMES_PAVILION.z, r: GAMES_PAVILION.radius },
+      decks: GAME_DECKS.map((d) => ({ id: d.id, minX: d.minX, maxX: d.maxX, minZ: d.minZ, maxZ: d.maxZ })),
+    },
     buildings,
     // street-level trees only (roof gardens sit on building footprints)
     trees: props.trees.filter((t) => t.y < 1).map((t) => ({ x: t.x, z: t.z })),

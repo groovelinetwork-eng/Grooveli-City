@@ -577,10 +577,18 @@ export function StationList({ kind, onPick }: { kind: InteriorKind; onPick: (s: 
   );
 }
 
-export function PlacesPanel({ onClose, onTravel }: { onClose: () => void; onTravel: (d: DistrictId) => void }) {
+export function PlacesPanel({ onClose, onTravel, onGames }: { onClose: () => void; onTravel: (d: DistrictId) => void; onGames?: () => void }) {
   return (
     <Panel title="Places" subtitle="Travel instantly — keyboard friendly" onClose={onClose}>
       <ul className="list">
+        {onGames ? (
+          <li>
+            <button type="button" className="city-btn" onClick={onGames} style={{ borderLeft: '4px solid #a78bfa' }}>
+              🎮 Grooveli Games Hub
+              <span className="muted small"> — on Grooveli Plaza · 5 games coming soon</span>
+            </button>
+          </li>
+        ) : null}
         {DISTRICTS.map((d) => (
           <li key={d.id}>
             <button type="button" className="city-btn" onClick={() => onTravel(d.id)} style={{ borderLeft: `4px solid ${d.color}` }}>

@@ -101,18 +101,25 @@ export function buildCityProps(): CityProps {
   });
 
   // ---- Plaza block (reference: landscaped strips around the plaza paving).
-  // West strip: two staggered tree rows, café clusters between, hedges on the plaza edge.
-  for (let z = -6.5; z <= 11.5; z += 4.4) {
-    trees.push({ x: -21.2, z, y: Y, s: 0.9, v: 0, planter: true });
-    trees.push({ x: -17, z: z + 2.2, y: Y, s: 0.82, v: 1, planter: true });
-  }
-  for (const z of [-4.3, 0.1, 4.5, 8.9]) {
-    umbrellas.push({ x: -19.1, z, y: Y, rot: 0 });
-    tables.push({ x: -19.1, z, y: Y, rot: 0 });
-    benches.push({ x: -23.4, z: z + 0.6, y: Y, rot: Math.PI / 2 });
-  }
-  for (let z = -6.8; z < 12; z += 4.4) hedges.push({ x: -15.25, z: z + 1.1, y: Y, w: 0.9, d: 3.2, h: 0.7 });
-  for (const z of [-6.2, -0.8, 4.8, 10.2]) banners.push({ x: -15.9, z, y: Y, rot: Math.PI / 2 });
+  // West strip: the Games Zone's Chess and Checkers terraces (world/gamesZone.ts) — trees and
+  // benches frame them on the outer sidewalk (low shrubs between the decks are part of the zone).
+  for (const [x, z] of [
+    [-23.6, -6],
+    [-23.6, -2],
+    [-23.6, 5.6],
+    [-23.6, 9.6],
+  ] as const)
+    trees.push({ x, z, y: Y, s: 0.72, v: z > 0 ? 0 : 1, planter: true });
+  benches.push({ x: -23.6, z: 1.8, y: Y, rot: Math.PI / 2 }, { x: -23.6, z: 12.2, y: Y, rot: Math.PI / 2 });
+  for (const z of [-8.2, 2.2, 11.7]) banners.push({ x: -15.05, z, y: Y, rot: Math.PI / 2 });
+  // Games Zone: planter trees and benches on the open paving west of the lounge.
+  for (const [x, z] of [
+    [-12.6, -6.9],
+    [-12.6, 10.9],
+    [-8.4, -7.6],
+  ] as const)
+    trees.push({ x, z, y: 0.35, s: 0.8, v: 1, planter: true });
+  benches.push({ x: -12.9, z: 2.2, y: 0.35, rot: Math.PI / 2 }, { x: -9.6, z: 11.4, y: 0.35, rot: 0 });
   // East strip.
   for (let z = -6; z <= 12; z += 4.5) trees.push({ x: 16.3, z, y: Y, s: 0.78, v: 2, planter: true });
   banners.push({ x: 15.3, z: 2.4, y: Y, rot: -Math.PI / 2 });

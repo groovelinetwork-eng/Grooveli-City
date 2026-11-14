@@ -1,6 +1,7 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrthographicCamera } from '@react-three/drei';
 import { useEffect, useRef, type MutableRefObject } from 'react';
+import { Vector3 } from 'three';
 import { HIDDEN_SCENE, SceneActive, inHiddenScene } from './sceneActive';
 import type { LabelPortal } from './labels';
 import type { AvatarConfig, DistrictId, PresenceProjection, PublicHqProjection } from '@grooveli/frontend-domain/public';
@@ -9,6 +10,7 @@ import { Ambient } from './Ambient';
 import { Player, type InputState, type PlayerState } from './Player';
 import { PresenceAvatars } from './Presence';
 import { Interior } from './Interior';
+import type { GameStationId } from '../world/gamesZone';
 import { HqPreloader } from './hq/HqPreloader';
 import { DEMO_HQ } from './hq/HqOffice';
 import { markHqWarm } from './hq/hqResources';
@@ -49,6 +51,7 @@ export interface CityCanvasProps {
   paused?: boolean;
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
+  onGame: (id: GameStationId) => void;
   markets: BoardModel | null;
   /** Fired once each time a scene (street or interior) has rendered its first complete frame. */
   onSceneReady?: () => void;
@@ -88,9 +91,23 @@ function HiddenScenesIgnorePointer() {
 /** Dev-only render statistics for performance checks (window.__grooveliRender). */
 function RenderStats({ player, view }: { player: MutableRefObject<PlayerState>; view: MutableRefObject<CityView> }) {
   const gl = useThree((s) => s.gl);
+  const scene = useThree((s) => s.scene);
+  const camera = useThree((s) => s.camera);
+  const size = useThree((s) => s.size);
   useFrame(() => {
     const w = window as unknown as { __grooveliRender?: unknown; __grooveliPlayer?: unknown; __grooveliGl?: unknown };
     w.__grooveliGl = gl;
+    (w as { __grooveliScene?: unknown }).__grooveliScene = scene;
+    // dev-only: world → CSS pixel position (for pointer checks in browser tests)
+    (w as { __grooveliProject?: (x: number, y: number, z: number) => { x: number; y: number } }).__grooveliProject = (x, y, z) => {
+      const v = new Vector3(x, y, z).project(camera);
+      const r = gl.domElement.getBoundingClientRect();
+      return { x: r.left + ((v.x + 1) / 2) * size.width, y: r.top + ((1 - v.y) / 2) * size.height };
+    };
+    // dev-only: frame a spot for visual checks (window.__grooveliTeleport(x, z))
+    (w as { __grooveliTeleport?: (x: number, z: number) => void }).__grooveliTeleport = (x, z) => {
+      player.current = { ...player.current, pos: { x, z }, target: null };
+    };
     w.__grooveliRender = { calls: gl.info.render.calls, triangles: gl.info.render.triangles };
     w.__grooveliPlayer = { x: player.current.pos.x, z: player.current.pos.z, yaw: view.current.yaw };
   });
@@ -155,6 +172,7 @@ export default function CityCanvas(props: CityCanvasProps) {
               nightLights={quality.level === 'high' ? 6 : quality.level === 'medium' ? 4 : 0}
               featurePulse={props.featurePulse}
               onFeature={props.onFeature}
+              onGame={props.onGame}
               markets={props.markets}
             />
             <Ambient pedestrians={quality.pedestrians} vehicles={quality.vehicles} reducedMotion={props.reducedMotion} night={night} />

@@ -21,6 +21,9 @@ import { useTouchControls } from './touchControls';
 import { enterInfo, leaveInfo, useSceneTransition } from './sceneTransition';
 import { preloadTargetAt } from './preloadTarget';
 import { SceneTransition } from '../ui/SceneTransition';
+import { GamePanel, GamesHubPanel } from '../ui/GamesPanels';
+import { useGameListings } from './useGames';
+import type { GameId, GameStationId } from '../world/gamesZone';
 import { CityMap } from '../ui/CityMap';
 import { BuildingPanel, DistrictPanel, HelpPanel, MarketsPanel, MenuPanel, NotificationsPanel, PeoplePanel, PlacesPanel, SettingsPanel, StationList, StationPanel, hqFor } from '../ui/panels';
 import { Panel, SimTag } from '../ui/Panel';
@@ -51,6 +54,8 @@ type Overlay =
   | { kind: 'station'; station: Station }
   | { kind: 'markets' }
   | { kind: 'map' }
+  | { kind: 'game'; id: GameId }
+  | { kind: 'games-hub' }
   | null;
 
 interface InteriorState {
@@ -99,6 +104,8 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
   const touch = useTouchControls(settings.touchControls);
   const sceneTx = useSceneTransition(settings.reducedMotion);
   const marketsAdapter = useMemo(() => createMarketsAdapter(cityConfig.marketsFeedUrl), []);
+  // Games: availability comes from the games service (none configured yet → every game "Coming soon").
+  const gameListings = useGameListings();
   const marketFeed = useMarketFeed(marketsAdapter, cityConfig.marketsRefreshMs, !fallback);
   const marketsModel = useMemo(() => (marketFeed.snapshot ? marketsBoardModel(marketFeed.snapshot, { fallback: marketFeed.status === 'fallback' }) : null), [marketFeed]);
   const [opened, setOpened] = useState<string | null>(null);
@@ -232,6 +239,11 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
     });
   }, [interior, startTransition]);
 
+  /** Games Zone stations open information panels (games are not playable yet). */
+  const openGame = useCallback((id: GameStationId) => {
+    setOverlay(id === 'games-hub' ? { kind: 'games-hub' } : { kind: 'game', id });
+  }, []);
+
   const interact = useCallback(() => {
     if (interior) {
       if (nearStation) setOverlay({ kind: 'station', station: nearStation });
@@ -239,8 +251,9 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
     }
     const n = nearestInteractable(player.current.pos);
     if (n?.kind === 'feature') activateFeature(n.id);
+    else if (n?.kind === 'game') openGame(n.id);
     else if (n) setOverlay({ kind: 'place', target: n });
-  }, [interior, nearStation, activateFeature]);
+  }, [interior, nearStation, activateFeature, openGame]);
 
   const onBuildingClick = useCallback((b: PlacedBuilding) => {
     const target = INTERACTABLES.find((i) => i.kind === 'building' && i.id === b.id);
@@ -341,7 +354,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               people={people}
               eventDistricts={eventDistricts}
               currentDistrict={district}
-              nearbyId={nearby?.kind === 'building' || nearby?.kind === 'feature' ? nearby.id : null}
+              nearbyId={nearby?.kind === 'building' || nearby?.kind === 'feature' || nearby?.kind === 'game' ? nearby.id : null}
               topJobs={topJobs}
               interior={interior ? { kind: interior.kind, brand: hq ? { color: hq.organization.logoColor, name: hq.organization.name } : undefined, hq } : null}
               onMoved={onMoved}
@@ -358,6 +371,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               paused={overlay?.kind === 'map' || sceneTx.state?.phase === 'closing'}
               featurePulse={featurePulse}
               onFeature={activateFeature}
+              onGame={openGame}
               markets={marketsModel}
               onSceneReady={sceneTx.sceneReady}
               preload={sceneTx.active ? null : preload}
@@ -455,7 +469,11 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
           <BuildingPanel target={overlay.target} hq={hqFor(data, overlay.target.building.organizationId)} onClose={() => setOverlay(null)} onEnter={() => enterBuilding(overlay.target.id)} />
         ) : null}
         {overlay?.kind === 'station' && interior ? <StationPanel kind={interior.kind} station={overlay.station} hq={hq} identity={identity} onClose={() => setOverlay(null)} /> : null}
-        {overlay?.kind === 'places' ? <PlacesPanel onClose={() => setOverlay(null)} onTravel={travel} /> : null}
+        {overlay?.kind === 'places' ? <PlacesPanel onClose={() => setOverlay(null)} onTravel={travel} onGames={() => openGame('games-hub')} /> : null}
+        {overlay?.kind === 'games-hub' ? <GamesHubPanel listings={gameListings} onSelect={(id) => openGame(id)} onClose={() => setOverlay(null)} /> : null}
+        {overlay?.kind === 'game' ? (
+          <GamePanel id={overlay.id} listing={gameListings.find((l) => l.id === overlay.id)} onClose={() => setOverlay(null)} onAllGames={() => openGame('games-hub')} />
+        ) : null}
         {overlay?.kind === 'people' ? <PeoplePanel people={people} onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'settings' ? (
           <SettingsPanel settings={settings} onChange={setSettings} onClose={() => setOverlay(null)} onDirectory={() => setFallback('Directory view (2D) selected.')} />
@@ -463,7 +481,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
         {overlay?.kind === 'help' ? <HelpPanel onClose={() => setOverlay(null)} /> : null}
         {overlay?.kind === 'map' && !interior ? (
           <Panel title="City map" subtitle={district ? `You are in ${getDistrict(district).name}` : 'Grooveli City'} onClose={() => setOverlay(null)} wide>
-            <CityMap variant="full" pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} />
+            <CityMap variant="full" pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} onOpenGames={() => openGame('games-hub')} />
           </Panel>
         ) : null}
         {overlay?.kind === 'markets' ? <MarketsPanel feed={marketFeed} onClose={() => setOverlay(null)} /> : null}
@@ -481,7 +499,7 @@ export function App({ search: searchProp, webgl: webglProp }: { search?: string;
               interior ? (
                 <p className="small muted">Leave the building to use the map.</p>
               ) : (
-                <CityMap pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} onExpand={() => setOverlay({ kind: 'map' })} />
+                <CityMap pos={pos} currentDistrict={district} onTravel={travel} onOpenBuilding={openBuildingFromMap} onOpenGames={() => openGame('games-hub')} onExpand={() => setOverlay({ kind: 'map' })} />
               )
             }
           />

@@ -8,6 +8,8 @@ import { ALL_BUILDINGS, SIDEWALK_H, districtKiosk, districtLabelPoint, type City
 import { buildCityProps } from '../world/props';
 import { Ground } from './city/Ground';
 import { Plaza } from './city/Plaza';
+import { GamesZone } from './games/GamesZone';
+import type { GameStationId } from '../world/gamesZone';
 import { Building } from './city/Buildings';
 import { Props } from './city/Props';
 import { NightLights } from './city/NightLights';
@@ -50,6 +52,7 @@ export function Environment({
   featurePulse,
   onFeature,
   markets,
+  onGame,
 }: {
   night: boolean;
   labels: boolean;
@@ -69,6 +72,8 @@ export function Environment({
   featurePulse: number;
   onFeature: (id: CityFeatureId) => void;
   markets: BoardModel | null;
+  /** Games Zone station chosen (click / tap). */
+  onGame: (id: GameStationId) => void;
 }) {
   const props = useMemo(buildCityProps, []);
   const beacon = useRef<THREE.Group>(null);
@@ -80,6 +85,7 @@ export function Environment({
     <group>
       <Ground night={night} onGround={onGround} />
       <Plaza night={night} reducedMotion={reducedMotion} onGround={onGround} />
+      <GamesZone night={night} reducedMotion={reducedMotion} nearbyId={nearbyId} onGame={onGame} />
       {ALL_BUILDINGS.map((b) => (
         <Building
           key={b.id}

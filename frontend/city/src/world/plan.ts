@@ -60,7 +60,7 @@ export const BUILDING_PLANS: Record<string, BuildingPlan> = {
   'b-halcyon': { rect: { minX: -50, maxX: -35, minZ: -8, maxZ: 2.5 }, h: 9, style: 'billboardBlock', body: '#e9eef4', accent: '#9d174d' },
   'b-studio': { rect: { minX: -64, maxX: -53, minZ: -7, maxZ: -1 }, h: 8, style: 'midrise', body: '#f3d9e4', accent: '#db2777', seed: 11 },
   // Plaza — the stage is the flat central disc (walkable, no collider).
-  'b-plaza-stage': { rect: { minX: -2.3, maxX: 2.3, minZ: -1.1, maxZ: 3.5 }, h: 0, style: 'flat' },
+  'b-plaza-stage': { rect: { minX: -2.3, maxX: 2.3, minZ: 1.1, maxZ: 5.7 }, h: 0, style: 'flat' },
   // Hospitality (2,1) — rooftop-dining mall east of the plaza.
   'b-saffron': { rect: { minX: 24.5, maxX: 52, minZ: -1.5, maxZ: 12.4 }, h: 7.5, style: 'mall', body: '#eef1f4', accent: '#9a3412' },
   'b-cafe': { rect: { minX: 54.5, maxX: 60.5, minZ: -7, maxZ: 4 }, h: 4.5, style: 'shop', body: '#fde7cf', accent: '#fb923c', seed: 13 },
@@ -99,6 +99,11 @@ export const DECOR_BUILDINGS: DecorBuilding[] = [
 
 /** The plaza paving and its central ring (reference: x 505–1085 px, y 265–580 px). */
 export const PLAZA_RECT: Footprint = { minX: -14.5, maxX: 14.5, minZ: -8.6, maxZ: 12.5 };
-export const PLAZA_RING = { x: 0, z: 1.2, radius: 6.3, discRadius: 2.3 };
+/**
+ * Central ring — since the Games Zone (world/gamesZone.ts) it is the "G" lounge:
+ * moved 2.2 m south and reduced from r 6.3 so the Games Hub pavilion fits on the
+ * plaza's north edge. Spawn, the plaza kiosk and the Plaza Stage follow it.
+ */
+export const PLAZA_RING = { x: 0, z: 3.4, radius: 4.6, discRadius: 2.1 };
 /** Minor north–south street between the two buildings above the plaza. */
 export const MINOR_STREETS: Footprint[] = [{ minX: -5.5, maxX: -0.5, minZ: -48, maxZ: -14 }];

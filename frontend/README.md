@@ -30,7 +30,7 @@ Grooveli-city/
 └── packages/
     └── shared/      # Shared types/utilities; coordinate changes
 ```
-Only `frontend/` is the frontend team's implementation scope. The other paths show the existing repository contract; do not overwrite or scaffold backend/shared without team approval.
+Only `frontend/` is the frontend team's implementation scope. The other paths show the existing repository contract; do not overwrite or scaffold backend/shared without team approval.....
 
 ## How to install the handoff
 Copy `CLAUDE.md` into the **actual monorepo root**; copy `docs/`, `references/`, and `source_documents/` to the monorepo root. **Do not replace existing app folders or workspace configuration.** Inspect existing files before adding or changing any code. Run Claude Code from the monorepo root and use `FIRST_BUILD_PROMPT.md`.

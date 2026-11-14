@@ -8,6 +8,9 @@ import type { WorldData } from '../services/world-data';
 import { PLACED_BUILDINGS } from '../world/layout';
 import { DistrictPanel, StationPanel, hqFor } from './panels';
 import { SimTag } from './Panel';
+import { GamePanel, GamesHubPanel } from './GamesPanels';
+import { useGameListings } from '../app/useGames';
+import type { GameId } from '../world/gamesZone';
 
 /**
  * Non-WebGL alternative: every district, building and interior station with
@@ -29,6 +32,8 @@ export function Directory({
 }) {
   const [district, setDistrict] = useState<DistrictId>(initialDistrict ?? 'plaza');
   const [room, setRoom] = useState<{ kind: InteriorKind; orgId?: string; station: Station | null } | null>(null);
+  const [games, setGames] = useState<GameId | 'hub' | null>(null);
+  const listings = useGameListings();
   const enter = (buildingId: string) => {
     const b = PLACED_BUILDINGS.find((x) => x.id === buildingId);
     if (!b) return;
@@ -66,6 +71,7 @@ export function Directory({
                   onClick={() => {
                     setDistrict(d.id);
                     setRoom(null);
+                    setGames(null);
                   }}
                 >
                   {d.name}
@@ -93,8 +99,19 @@ export function Directory({
                 <StationPanel kind={room.kind} station={room.station} hq={hqFor(data, room.orgId)} identity={identity} onClose={() => setRoom({ ...room, station: null })} />
               ) : null}
             </div>
+          ) : games === 'hub' ? (
+            <GamesHubPanel listings={listings} onSelect={(id) => setGames(id)} onClose={() => setGames(null)} />
+          ) : games ? (
+            <GamePanel id={games} listing={listings.find((l) => l.id === games)} onClose={() => setGames(null)} onAllGames={() => setGames('hub')} />
           ) : (
-            <DistrictPanel district={district} data={data} onClose={() => setDistrict('plaza')} onEnter={enter} />
+            <>
+              <DistrictPanel district={district} data={data} onClose={() => setDistrict('plaza')} onEnter={enter} />
+              {district === 'plaza' ? (
+                <button type="button" className="city-btn" onClick={() => setGames('hub')} style={{ borderLeft: '4px solid #a78bfa' }}>
+                  🎮 Grooveli Games Hub <span className="muted small">— 5 games coming soon</span>
+                </button>
+              ) : null}
+            </>
           )}
           <p className="small muted">
             Also available: <a href={webHref({ type: 'browseJobs' })}>all jobs</a> · <a href={`${cityConfig.webUrl}/city-directory`}>web city directory</a>. People in the

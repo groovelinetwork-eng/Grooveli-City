@@ -1,5 +1,6 @@
 import { BUILDINGS, DISTRICTS, PARK_BLOCK, type CityBuilding, type DistrictId } from '@grooveli/frontend-domain/public';
 import { BUILDING_PLANS, DECOR_BUILDINGS, MINOR_STREETS, PLAZA_RECT, PLAZA_RING, type BuildingStyle, type Footprint } from './plan';
+import { GAMES_COLLIDERS, GAME_STATIONS, deckHeightAt, type GameStationId } from './gamesZone';
 
 /**
  * World layout. Units ≈ metres; origin = plaza ring centre. The street grid is
@@ -155,7 +156,7 @@ export const DECOR_PLACED: PlacedBuilding[] = DECOR_BUILDINGS.map((d) => {
 });
 
 export const ALL_BUILDINGS: PlacedBuilding[] = [...PLACED_BUILDINGS, ...DECOR_PLACED];
-export const COLLIDERS: AABB[] = ALL_BUILDINGS.filter((b) => b.style !== 'flat').map((b) => b.aabb);
+export const COLLIDERS: AABB[] = [...ALL_BUILDINGS.filter((b) => b.style !== 'flat').map((b) => b.aabb), ...GAMES_COLLIDERS];
 
 /**
  * Each district has an info kiosk on the sidewalk facing the plaza row.
@@ -187,7 +188,9 @@ export type CityFeatureId = 'markets-board';
 export type Interactable =
   | { kind: 'district'; id: string; district: DistrictId; label: string; position: Vec2 }
   | { kind: 'building'; id: string; district: DistrictId; label: string; position: Vec2; building: PlacedBuilding }
-  | { kind: 'feature'; id: CityFeatureId; district: DistrictId; label: string; position: Vec2; buildingId: string };
+  | { kind: 'feature'; id: CityFeatureId; district: DistrictId; label: string; position: Vec2; buildingId: string }
+  /** Games Zone stations on Grooveli Plaza (games are not playable yet: they open information panels). */
+  | { kind: 'game'; id: GameStationId; district: DistrictId; label: string; position: Vec2 };
 
 const MARKETS_BUILDING = 'b-tech-tower';
 
@@ -208,6 +211,7 @@ export const INTERACTABLES: Interactable[] = [
     building: b,
   })),
   { kind: 'feature', id: 'markets-board', district: 'tech', label: 'Global Markets charts', position: marketsBoardPoint(), buildingId: MARKETS_BUILDING },
+  ...GAME_STATIONS.map((g) => ({ kind: 'game' as const, id: g.id, district: 'plaza' as const, label: g.label, position: g.position })),
 ];
 
 export const PARK_CENTER = blockCenter(PARK_BLOCK);
@@ -225,8 +229,10 @@ function inside(p: Vec2, r: AABB) {
   return p.x >= r.minX && p.x <= r.maxX && p.z >= r.minZ && p.z <= r.maxZ;
 }
 
-/** Walking surface height: road 0, sidewalks/blocks 0.2, raised plaza 0.35. */
+/** Walking surface height: road 0, sidewalks/blocks 0.2, raised plaza 0.35, Games Zone decks a little higher. */
 export function groundHeight(p: Vec2): number {
+  const deck = deckHeightAt(p);
+  if (deck !== null) return deck;
   if (inside(p, PLAZA_RECT)) return PLAZA_H;
   for (const c of COLS) for (const r of ROWS) if (p.x >= c[0] && p.x <= c[1] && p.z >= r[0] && p.z <= r[1]) return SIDEWALK_H;
   return 0;

@@ -8,10 +8,6 @@ import { plazaTileTexture, repeatOf } from './textures';
 
 const CYAN = '#5ee7ff';
 
-/** [x, z, width, depth] of planting beds under the west-strip tree rows. */
-const BEDS: [number, number, number, number][] = [];
-for (let z = -6.5; z <= 11.5; z += 4.4) BEDS.push([-21.2, z, 2.4, 3.2], [-17, z + 2.2, 2, 3]);
-
 /** Grooveli Plaza: raised slate-tiled square with cyan light work (reference centre). */
 export function Plaza({ night, reducedMotion, onGround }: { night: boolean; reducedMotion: boolean; onGround: (p: Vec2) => void }) {
   const P = PLAZA_RECT;
@@ -99,19 +95,6 @@ export function Plaza({ night, reducedMotion, onGround }: { night: boolean; redu
       <mesh position={[PLAZA_RING.x, y + 0.025, PLAZA_RING.z]} rotation-x={-Math.PI / 2} material={ringMat}>
         <ringGeometry args={[PLAZA_RING.discRadius - 0.05, PLAZA_RING.discRadius + 0.08, 64]} />
       </mesh>
-      {/* planted beds in the west strip, around the tree rows (reference left of the plaza) */}
-      {BEDS.map(([x, z, bw, bd], i) => (
-        <group key={i} position={[x, SIDEWALK_H, z]}>
-          <mesh position-y={0.09} receiveShadow>
-            <boxGeometry args={[bw, 0.18, bd]} />
-            <meshStandardMaterial color={night ? '#4b5568' : '#e6e1d6'} />
-          </mesh>
-          <mesh position-y={0.19} rotation-x={-Math.PI / 2} receiveShadow>
-            <planeGeometry args={[bw - 0.25, bd - 0.25]} />
-            <meshStandardMaterial color={night ? '#1d4a24' : '#5aa845'} roughness={0.95} />
-          </mesh>
-        </group>
-      ))}
       {/* front steps (south edge) */}
       <mesh position={[cx, SIDEWALK_H + 0.05, P.maxZ + 0.35]} receiveShadow>
         <boxGeometry args={[w * 0.5, 0.1, 0.7]} />
