@@ -103,5 +103,5 @@ describe('HQ resources', () => {
     expect(hqTextures(DEMO_HQ).length).toBeGreaterThan(20);
     expect(hqMaterials()).toBe(hqMaterials());
     expect(hqBrandMaterials('#2563eb')).toBe(hqBrandMaterials('#2563eb'));
-  });
+  }, 20000); // imports the whole HQ scene module
 });

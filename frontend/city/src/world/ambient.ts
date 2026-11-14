@@ -1,6 +1,5 @@
 import { DISTRICTS, PARK_BLOCK } from '@grooveli/frontend-domain/public';
 import { COLS, GRID_H, GRID_W, OUTER_ROAD, ROWS, blockBounds, type AABB, type Vec2 } from './layout';
-import { PLAZA_RECT, PLAZA_RING } from './plan';
 import { TRAFFIC_MIX, VEHICLE_SPECS, type VehicleKind } from './vehicles';
 
 /** Closed rectangular loop; position by distance travelled. */
@@ -103,7 +102,8 @@ const SKIN = ['#f1c27d', '#e0ac69', '#c68642', '#8d5524', '#ffdbac', '#a0673b'];
 const SHOES = ['#111827', '#f8fafc', '#7c2d12', '#1e3a8a', '#dc2626', '#111827'];
 const BAGS = ['#0f172a', '#b45309', '#be123c', '#0f766e'];
 
-function look(i: number) {
+/** Deterministic clothing / skin / hair for simulated person i. */
+export function look(i: number) {
   return {
     color: SHIRT_COLORS[(i * 5) % SHIRT_COLORS.length]!,
     pants: PANTS[(i * 3 + 1) % PANTS.length]!,
@@ -116,8 +116,13 @@ function look(i: number) {
 
 /**
  * Pedestrians: 85 % walk sidewalk loops around blocks, 10 % stroll laps of
- * the plaza, 5 % stand on the plaza (reference: ~20 people spread over it).
+ * the walkway around the Games Zone lounge, 5 % stand on the open plaza paving.
  */
+/** Walkway ring around the lounge, between the pavilion and the east / west game areas. */
+const PLAZA_WALK: AABB = { minX: -6.4, maxX: 6.2, minZ: -0.9, maxZ: 10.7 };
+/** Open paving west of the lounge (events, people standing around). */
+const PLAZA_OPEN: AABB = { minX: -13.2, maxX: -7.6, minZ: -6.5, maxZ: 10.5 };
+
 export function makePedestrians(count: number): Walker[] {
   return Array.from({ length: count }, (_, i) => {
     const bucket = i % 20;
@@ -127,16 +132,14 @@ export function makePedestrians(count: number): Walker[] {
       return { loop, offset: rand(i + 3) * loopLength(loop), speed: 1.1 + rand(i + 11) * 0.7, ...look(i) };
     }
     if (bucket < 19) {
-      const inset = 1 + rand(i + 2) * 5.5;
-      const loop = loopFromBounds(PLAZA_RECT, inset, rand(i + 9) > 0.5);
+      // Strollers lap the walkway around the Games Zone lounge, clear of the game areas.
+      const inset = rand(i + 2) * 0.8;
+      const loop = loopFromBounds(PLAZA_WALK, inset, rand(i + 9) > 0.5);
       return { loop, offset: rand(i + 3) * loopLength(loop), speed: 0.9 + rand(i + 5) * 0.6, ...look(i) };
     }
-    // Idle: a degenerate loop pins them in place; avoid the ring centre where the player spawns.
-    let x = PLAZA_RECT.minX + 1.5 + rand(i + 13) * (PLAZA_RECT.maxX - PLAZA_RECT.minX - 3);
-    let z = PLAZA_RECT.minZ + 1.5 + rand(i + 17) * (PLAZA_RECT.maxZ - PLAZA_RECT.minZ - 3);
-    if (Math.hypot(x - PLAZA_RING.x, z - PLAZA_RING.z) < PLAZA_RING.radius + 0.5) x += x < 0 ? -PLAZA_RING.radius : PLAZA_RING.radius;
-    x = Math.max(PLAZA_RECT.minX + 1, Math.min(PLAZA_RECT.maxX - 1, x));
-    z = Math.max(PLAZA_RECT.minZ + 1, Math.min(PLAZA_RECT.maxZ - 1, z));
+    // Idle: a degenerate loop pins them in place on the open paving west of the lounge.
+    const x = PLAZA_OPEN.minX + rand(i + 13) * (PLAZA_OPEN.maxX - PLAZA_OPEN.minX);
+    const z = PLAZA_OPEN.minZ + rand(i + 17) * (PLAZA_OPEN.maxZ - PLAZA_OPEN.minZ);
     return { loop: { cx: x, cz: z, hw: 0, hd: 0.0001, clockwise: true }, offset: rand(i) * 6.28, speed: 0, ...look(i) };
   });
 }

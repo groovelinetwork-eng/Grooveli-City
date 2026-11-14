@@ -34,5 +34,7 @@ export const cityConfig = {
   /** Backend market feed endpoint; null = mock feed (simulated, clearly labelled). */
   marketsFeedUrl: safeFeedUrl(import.meta.env.VITE_MARKETS_FEED_URL),
   /** Billboard refresh interval (ms). Defaults: 30 s mock, 60 s live. */
+  /** Games service base URL (docs/GAMES_CONTRACT.md); null = no games backend, every game shows "Coming soon". */
+  gamesApiUrl: safeFeedUrl(import.meta.env.VITE_GAMES_API_URL),
   marketsRefreshMs: Math.max(15, Number(import.meta.env.VITE_MARKETS_REFRESH_SECONDS) || (import.meta.env.VITE_MARKETS_FEED_URL ? 60 : 30)) * 1000,
 } as const;

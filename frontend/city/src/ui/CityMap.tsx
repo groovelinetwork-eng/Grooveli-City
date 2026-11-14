@@ -17,9 +17,11 @@ export interface CityMapProps {
   onTravel: (d: DistrictId) => void;
   onOpenBuilding: (b: PlacedBuilding) => void;
   onExpand?: () => void;
+  /** Opens the Games Hub panel (Games Zone landmark). */
+  onOpenGames?: () => void;
 }
 
-type Selection = { type: 'district'; id: DistrictId } | { type: 'building'; id: string } | null;
+type Selection = { type: 'district'; id: DistrictId } | { type: 'building'; id: string } | { type: 'games' } | null;
 interface View {
   x: number;
   y: number;
@@ -39,7 +41,7 @@ function roofShade(h: number, landmark: boolean) {
   return `hsl(215 ${landmark ? 18 : 12}% ${l}%)`;
 }
 
-export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, onOpenBuilding, onExpand }: CityMapProps) {
+export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, onOpenBuilding, onExpand, onOpenGames }: CityMapProps) {
   const m = useMemo(cityMapModel, []);
   const full = variant === 'full';
   const world: View = useMemo(() => {
@@ -180,6 +182,11 @@ export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, o
               <rect {...R(m.plaza.rect)} rx={0.8} className="cm-plaza" />
               <circle cx={m.plaza.ring.x} cy={m.plaza.ring.z} r={m.plaza.ring.radius} className="cm-plaza-ring" />
               <circle cx={m.plaza.ring.x} cy={m.plaza.ring.z} r={m.plaza.ring.discRadius} className="cm-plaza-disc" />
+              {/* Games Zone: game decks and the Games Hub pavilion */}
+              {m.games.decks.map((g) => (
+                <rect key={g.id} {...R(g)} rx={0.5} className="cm-game-deck" />
+              ))}
+              <circle cx={m.games.pavilion.x} cy={m.games.pavilion.z} r={m.games.pavilion.r} className="cm-games-pavilion" />
             </g>
           );
         })()}
@@ -203,7 +210,13 @@ export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, o
   // ---------------------------------------------------------------- interaction state
   const active = selected ?? hover;
   const activeDistrict: MapDistrict | null =
-    active?.type === 'district' ? m.districts.find((d) => d.id === active.id) ?? null : active?.type === 'building' ? m.districts.find((d) => d.id === m.buildings.find((b) => b.id === active.id)?.district) ?? null : null;
+    active?.type === 'district'
+      ? m.districts.find((d) => d.id === active.id) ?? null
+      : active?.type === 'building'
+        ? m.districts.find((d) => d.id === m.buildings.find((b) => b.id === active.id)?.district) ?? null
+        : active?.type === 'games'
+          ? m.districts.find((d) => d.id === 'plaza') ?? null
+          : null;
   const activeBuilding: MapBuilding | null = active?.type === 'building' ? m.buildings.find((b) => b.id === active.id) ?? null : null;
   const keySelect = (s: Selection) => (e: KeyboardEvent) => {
     if (e.key === 'Enter' || e.key === ' ') {
@@ -332,6 +345,30 @@ export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, o
               );
             })}
 
+          {/* Games Hub landmark (on the plaza) */}
+          <g
+            role="button"
+            tabIndex={0}
+            className={`cm-games${active?.type === 'games' ? ' is-active' : ''}`}
+            aria-label={`${m.games.name}, Grooveli Plaza: Chess, Checkers, Ludo, 8-Ball Pool and Puzzles, coming soon. Show details.`}
+            onPointerEnter={(e: ReactPointerEvent) => e.pointerType === 'mouse' && setHover({ type: 'games' })}
+            onFocus={() => setHover({ type: 'games' })}
+            onBlur={() => setHover(null)}
+            onClick={tap(() => setSelected({ type: 'games' }))}
+            onKeyDown={keySelect({ type: 'games' })}
+          >
+            <circle cx={m.games.pavilion.x} cy={m.games.pavilion.z} r={Math.max(m.games.pavilion.r, iconSize * 0.9)} className="cm-games-hit" />
+            <circle cx={m.games.pavilion.x} cy={m.games.pavilion.z} r={iconSize * 0.78} className="cm-icon-bg" pointerEvents="none" />
+            <text x={m.games.pavilion.x} y={m.games.pavilion.z} fontSize={iconSize} textAnchor="middle" dominantBaseline="central" pointerEvents="none">
+              🎮
+            </text>
+            {showBuildingNames ? (
+              <text x={m.games.pavilion.x} y={m.games.pavilion.z - iconSize * 1.2} fontSize={px(11)} textAnchor="middle" className="cm-label cm-building-label" pointerEvents="none">
+                Games Hub
+              </text>
+            ) : null}
+          </g>
+
           {/* district names */}
           {m.districts.map((d) => {
             const c = centre(d.lot);
@@ -367,7 +404,28 @@ export function CityMap({ pos, currentDistrict, variant = 'compact', onTravel, o
 
       {/* details: preview on hover/focus, actions when selected */}
       <div className="citymap-card" aria-live="polite">
-        {activeBuilding ? (
+        {active?.type === 'games' ? (
+          <>
+            <p className="cm-card-title">
+              <span aria-hidden="true">🎮</span> {m.games.name}
+            </p>
+            <p className="small">On Grooveli Plaza · Chess, Checkers, Ludo, 8-Ball Pool and Puzzles — coming soon.</p>
+            {selected?.type === 'games' ? (
+              <div className="row-btns">
+                {onOpenGames ? (
+                  <button type="button" className="city-btn city-btn-primary" onClick={onOpenGames}>
+                    Games Hub details
+                  </button>
+                ) : null}
+                <button type="button" className="city-btn" onClick={() => onTravel('plaza')}>
+                  Travel to Grooveli Plaza
+                </button>
+              </div>
+            ) : (
+              <p className="small muted">Click or tap for details.</p>
+            )}
+          </>
+        ) : activeBuilding ? (
           <>
             <p className="cm-card-title">
               <span aria-hidden="true">{activeBuilding.icon}</span> {activeBuilding.name}
