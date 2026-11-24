@@ -1,0 +1,1322 @@
+// Grooveli City — database schema.
+// Change it with: pnpm --filter @grooveli/api db:migrate --name <change>
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ── Identity & auth ─────────────────────────────────────────────────────────
+
+enum AccountType {
+  candidate
+  organization
+}
+
+enum PlatformRole {
+  none
+  admin
+}
+
+model User {
+  id                   String       @id @default(cuid())
+  /// Stored lowercased and trimmed.
+  email                String       @unique
+  passwordHash         String
+  displayName          String
+  accountType          AccountType
+  platformRole         PlatformRole @default(none)
+  emailVerifiedAt      DateTime?
+  onboardingComplete   Boolean      @default(false)
+  activeOrganizationId String?
+  failedLoginCount     Int          @default(0)
+  lockedUntil          DateTime?
+  /// Platform-level suspension by moderators: no sign-in, sessions revoked.
+  suspendedAt          DateTime?
+  createdAt            DateTime     @default(now())
+  updatedAt            DateTime     @updatedAt
+  /// Soft delete; personal data is purged 30 days later.
+  deletedAt            DateTime?
+
+  sessions           Session[]
+  authTokens         AuthToken[]
+  memberships        Membership[]
+  invitationsSent    Invitation[]           @relation("InvitedBy")
+  dataExportRequests DataExportRequest[]
+  candidateProfile   CandidateProfile?
+  applications       Application[]
+  savedJobs          SavedJob[]
+  xpEvents           XpEvent[]
+  notifications      Notification[]
+  challengeAttempts  ChallengeAttempt[]
+  interviewSims      InterviewSimulation[]
+  courseProgress     CourseModuleProgress[]
+  missionClaims      MissionClaim[]
+  assessmentResponse AssessmentResponse?
+  blocksMade         Block[]                @relation("Blocker")
+  blocksReceived     Block[]                @relation("Blocked")
+
+  @@index([deletedAt])
+}
+
+model Session {
+  id         String    @id @default(cuid())
+  /// SHA-256 of the cookie value; the raw token is never stored.
+  tokenHash  String    @unique
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now())
+  lastSeenAt DateTime  @default(now())
+  expiresAt  DateTime
+  revokedAt  DateTime?
+  ip         String?
+  userAgent  String?
+
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+enum AuthTokenType {
+  email_verify
+  password_reset
+}
+
+model AuthToken {
+  id        String        @id @default(cuid())
+  type      AuthTokenType
+  tokenHash String        @unique
+  userId    String
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime      @default(now())
+
+  @@index([userId, type])
+}
+
+enum DataExportStatus {
+  queued
+  ready
+  expired
+}
+
+model DataExportRequest {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status    DataExportStatus @default(queued)
+  createdAt DateTime         @default(now())
+  readyAt   DateTime?
+
+  @@index([userId, createdAt])
+}
+
+// ── Organisations ───────────────────────────────────────────────────────────
+
+enum OrgRole {
+  org_admin       @map("org-admin")
+  hr_manager      @map("hr-manager")
+  recruiter
+  payroll_officer @map("payroll-officer")
+  manager
+  employee
+}
+
+enum SubscriptionTier {
+  starter
+  growth
+  enterprise
+}
+
+enum OrgModule {
+  recruitment
+  hr
+  payroll
+  engagement
+  analytics
+}
+
+model Organization {
+  id               String           @id @default(cuid())
+  name             String
+  tagline          String           @default("")
+  logoColor        String           @default("#1E6FFF")
+  logoGlyph        String           @default("")
+  industry         String           @default("")
+  district         String           @default("corporate")
+  description      String           @default("")
+  website          String           @default("")
+  size             String           @default("1-10")
+  structure        String           @default("")
+  workArrangements String[]
+  values           String[]
+  /// { environment, leadership, collaboration, development, inclusion, workLife }
+  culture          Json             @default("{}")
+  benefits         String[]
+  headquarters     String           @default("")
+  verified         Boolean          @default(false)
+  tier             SubscriptionTier @default(starter)
+  /// { id, name, steps[] }[]
+  workflows        Json             @default("[]")
+  /// Record<string, boolean>
+  setupChecklist   Json             @default("{}")
+  /// Days per year by leave type. Default until a leave-policy editor exists.
+  leaveAllowances  Json             @default("{\"annual\":20,\"sick\":10,\"parental\":90,\"study\":5,\"unpaid\":30}")
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+  deletedAt        DateTime?
+
+  memberships Membership[]
+  invitations Invitation[]
+  auditLog    AuditLog[]
+  jobs        Job[]
+  locations   OfficeLocation[]
+  departments Department[]
+  policies    Policy[]
+  shortlists  Shortlist[]
+  assessments Assessment[]
+  employees   Employee[]
+
+  @@index([district])
+  @@index([industry])
+}
+
+enum MembershipStatus {
+  active
+  suspended
+}
+
+model Membership {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  userId         String
+  user           User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  roles          OrgRole[]
+  status         MembershipStatus @default(active)
+  departmentId   String?
+  /// Department IDs this member recruits for.
+  recruitingFor  String[]
+  /// Linked HR employee record, once one exists.
+  employeeId     String?
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
+  @@unique([organizationId, userId])
+  @@index([userId])
+}
+
+enum InvitationStatus {
+  pending
+  accepted
+  revoked
+  expired
+}
+
+model Invitation {
+  id             String           @id @default(cuid())
+  organizationId String
+  organization   Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  email          String
+  roles          OrgRole[]
+  tokenHash      String           @unique
+  status         InvitationStatus @default(pending)
+  invitedById    String?
+  invitedBy      User?            @relation("InvitedBy", fields: [invitedById], references: [id], onDelete: SetNull)
+  sentAt         DateTime         @default(now())
+  expiresAt      DateTime
+  acceptedAt     DateTime?
+
+  @@index([organizationId, status])
+  @@index([email])
+}
+
+/// Which modules each plan includes (editable by platform admins).
+model TierModules {
+  tier    SubscriptionTier @id
+  modules OrgModule[]
+}
+
+// ── Audit ───────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id             String        @id @default(cuid())
+  at             DateTime      @default(now())
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  actorId        String?
+  action         String
+  targetType     String
+  targetId       String
+  /// Truncated to /24 (IPv4) or /48 (IPv6).
+  ip             String?
+  details        Json          @default("{}")
+
+  @@index([organizationId, at])
+  @@index([actorId, at])
+}
+
+// ── Candidate ───────────────────────────────────────────────────────────────
+
+enum ProfileVisibility {
+  public
+  employers
+  private
+}
+
+enum AudienceSetting {
+  everyone
+  connections
+  nobody
+}
+
+enum PresenceVisibility {
+  everyone
+  connections
+  hidden
+}
+
+model CandidateProfile {
+  userId          String            @id
+  user            User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  headline        String            @default("")
+  location        String            @default("")
+  /// female | male | non-binary | self-describe | prefer-not. Never used for matching.
+  gender          String?
+  yearsExperience Int               @default(0)
+  /// employee | freelancer | entrepreneur | student | open
+  orientation     String            @default("open")
+  /// PersonalityTraits. Social features only, never matching.
+  personality     Json?
+  avatar          Json
+  /// data:image/...;base64. Never used for matching.
+  photoDataUrl    String?
+  summary         String            @default("")
+  /// SkillRating[]
+  skills          Json              @default("[]")
+  certifications  String[]
+  /// ExperienceEntry[]
+  experience      Json              @default("[]")
+  /// EducationEntry[]
+  education       Json              @default("[]")
+  /// JobPreferences
+  preferences     Json
+  visibility      ProfileVisibility @default(employers)
+
+  cvKey         String?
+  cvName        String?
+  cvSizeKb      Int?
+  cvContentType String?
+  cvAddedAt     DateTime?
+
+  presenceVisibility   PresenceVisibility @default(everyone)
+  showInEventAttendees Boolean            @default(true)
+  allowInvitations     AudienceSetting    @default(everyone)
+  allowMessages        AudienceSetting    @default(connections)
+  profileDiscoverable  Boolean            @default(true)
+  /// Social profile (never used for matching).
+  homeDistrict         String             @default("plaza")
+  interests            String[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([visibility])
+}
+
+model Block {
+  blockerId String
+  blocker   User     @relation("Blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blockedId String
+  blocked   User     @relation("Blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+// ── Jobs & applications ─────────────────────────────────────────────────────
+
+enum JobStatus {
+  draft
+  published
+  closed
+}
+
+enum ApplicationStatus {
+  submitted
+  screening
+  shortlisted
+  interview
+  offer
+  hired
+  rejected
+  withdrawn
+}
+
+model Job {
+  id                     String       @id @default(cuid())
+  organizationId         String
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title                  String
+  department             String       @default("")
+  district               String
+  location               String       @default("")
+  /// remote | hybrid | onsite
+  workMode               String
+  /// full-time | part-time | contract | internship | freelance
+  employmentType         String
+  /// entry | mid | senior | lead
+  level                  String
+  minYears               Int          @default(0)
+  salaryMin              Int
+  salaryMax              Int
+  skills                 String[]
+  requiredQualifications String[]
+  description            String       @default("")
+  responsibilities       String[]
+  postedOn               DateTime     @db.Date
+  closesOn               DateTime     @db.Date
+  status                 JobStatus    @default(draft)
+  createdAt              DateTime     @default(now())
+  updatedAt              DateTime     @updatedAt
+
+  applications Application[]
+  savedBy      SavedJob[]
+  interviews   Interview[]
+
+  @@index([status, district])
+  @@index([organizationId, status])
+  @@index([status, postedOn])
+}
+
+model SavedJob {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobId     String
+  job       Job      @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, jobId])
+}
+
+model Application {
+  id            String            @id @default(cuid())
+  jobId         String
+  job           Job               @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidate     User              @relation(fields: [candidateId], references: [id], onDelete: Cascade)
+  candidateName String
+  status        ApplicationStatus @default(submitted)
+  coverLetter   String            @default("")
+  fitScore      Int
+  /// { status, at, note? }[]
+  history       Json              @default("[]")
+  /// candidate | employer-invite | assistant
+  source        String            @default("candidate")
+  submittedAt   DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  interviews Interview[]
+
+  @@unique([jobId, candidateId])
+  @@index([candidateId, submittedAt])
+  @@index([jobId, status])
+}
+
+enum InterviewStatus {
+  scheduled
+  completed
+  cancelled
+}
+
+model Interview {
+  id            String          @id @default(cuid())
+  applicationId String
+  application   Application     @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  jobId         String
+  job           Job             @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  candidateId   String
+  candidateName String
+  scheduledAt   DateTime
+  durationMin   Int
+  /// video | onsite | phone | virtual-hq
+  format        String
+  interviewers  String[]
+  status        InterviewStatus @default(scheduled)
+  notes         String          @default("")
+  /// { criterion, score }[]
+  scorecard     Json            @default("[]")
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  @@index([candidateId, scheduledAt])
+  @@index([jobId, scheduledAt])
+}
+
+// ── Career progress ─────────────────────────────────────────────────────────
+
+enum XpReason {
+  profile_complete     @map("profile-complete")
+  cv_upload            @map("cv-upload")
+  career_assessment    @map("career-assessment")
+  skill_challenge      @map("skill-challenge")
+  suitable_application @map("suitable-application")
+  interview_simulation @map("interview-simulation")
+  course_complete      @map("course-complete")
+  mission_complete     @map("mission-complete")
+}
+
+model XpEvent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reason    XpReason
+  amount    Int
+  ref       String?
+  /// Set for awards allowed only once (per reason, or per reason+ref). The unique index enforces it under concurrency.
+  dedupeKey String?
+  at        DateTime @default(now())
+
+  @@unique([userId, dedupeKey])
+  @@index([userId, at])
+  @@index([userId, reason, at])
+}
+
+model ChallengeAttempt {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  challengeId String
+  score       Int
+  total       Int
+  at          DateTime @default(now())
+
+  @@index([userId, challengeId])
+}
+
+model AssessmentResponse {
+  userId    String   @id
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  answers   Json
+  updatedAt DateTime @updatedAt
+}
+
+model InterviewSimulation {
+  id     String   @id @default(cuid())
+  userId String
+  user   User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role   String
+  score  Int
+  at     DateTime @default(now())
+
+  @@index([userId, at])
+}
+
+model CourseModuleProgress {
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  moduleIndex Int
+  completedAt DateTime @default(now())
+
+  @@id([userId, courseId, moduleIndex])
+}
+
+model MissionClaim {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  missionId String
+  claimedAt DateTime @default(now())
+
+  @@id([userId, missionId])
+}
+
+enum NotificationKind {
+  application
+  interview
+  mission
+  system
+  social
+  workplace
+}
+
+model Notification {
+  id     String           @id @default(cuid())
+  userId String
+  user   User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  kind   NotificationKind
+  title  String
+  body   String
+  /// Relative in-app path only.
+  href   String?
+  readAt DateTime?
+  at     DateTime         @default(now())
+
+  @@index([userId, at])
+  @@index([userId, readAt])
+}
+
+// ── Career content (platform-managed; loaded by `pnpm db:content`) ──────────
+
+model ContentMission {
+  id           String   @id
+  title        String
+  description  String
+  /// career | skill
+  kind         String
+  district     String
+  /// Empty = all orientations.
+  orientations String[]
+  rewardXp     Int
+  /// { id, label, check }[]
+  objectives   Json
+  active       Boolean  @default(true)
+  sortOrder    Int      @default(0)
+}
+
+model ContentChallenge {
+  id        String  @id
+  title     String
+  skill     String
+  district  String
+  xp        Int
+  /// { id, prompt, options, answer, explanation }[]. Answers never leave the server before an attempt.
+  questions Json
+  active    Boolean @default(true)
+  sortOrder Int     @default(0)
+}
+
+model ContentCourse {
+  id        String   @id
+  title     String
+  provider  String
+  skill     String
+  hours     Float
+  modules   String[]
+  xp        Int
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+}
+
+model ContentAchievement {
+  id          String  @id
+  title       String
+  description String
+  icon        String
+  /// xp | applications | missions | challenges | profile-complete
+  ruleType    String
+  ruleMin     Int?
+  active      Boolean @default(true)
+  sortOrder   Int     @default(0)
+}
+
+model ContentAssessmentQuestion {
+  id        String   @id
+  prompt    String
+  options   String[]
+  active    Boolean  @default(true)
+  sortOrder Int      @default(0)
+}
+
+// ── Organisation structure ──────────────────────────────────────────────────
+
+model OfficeLocation {
+  id                String       @id @default(cuid())
+  organizationId    String
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name              String
+  city              String       @default("")
+  address           String       @default("")
+  headcountCapacity Int          @default(0)
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  departments Department[]
+
+  @@index([organizationId])
+}
+
+model Department {
+  id               String          @id @default(cuid())
+  organizationId   String
+  organization     Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name             String
+  /// Employee record ID (HR module).
+  headEmployeeId   String?
+  responsibilities String          @default("")
+  locationId       String?
+  location         OfficeLocation? @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  createdAt        DateTime        @default(now())
+  updatedAt        DateTime        @updatedAt
+
+  @@unique([organizationId, name])
+}
+
+enum PolicyCategory {
+  leave
+  conduct
+  remote_work @map("remote-work")
+  benefits
+  security
+  other
+}
+
+model Policy {
+  id             String         @id @default(cuid())
+  organizationId String
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  title          String
+  category       PolicyCategory
+  body           String
+  /// Bumped on every content change; acknowledgements apply to one version.
+  version        Int            @default(1)
+  archivedAt     DateTime?
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  acknowledgements PolicyAcknowledgement[]
+
+  @@index([organizationId, archivedAt])
+}
+
+model PolicyAcknowledgement {
+  policyId String
+  policy   Policy   @relation(fields: [policyId], references: [id], onDelete: Cascade)
+  userId   String
+  version  Int
+  at       DateTime @default(now())
+
+  @@id([policyId, userId, version])
+}
+
+// ── Recruitment ─────────────────────────────────────────────────────────────
+
+model Shortlist {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobId          String
+  name           String
+  applicationIds String[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, jobId])
+}
+
+model Assessment {
+  id             String       @id @default(cuid())
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  jobId          String
+  title          String
+  /// skills-test | case-study | work-sample
+  kind           String
+  questions      String[]
+  /// { applicationId, score, reviewer, reviewerId, at }[]
+  results        Json         @default("[]")
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, jobId])
+}
+
+// ── HR ──────────────────────────────────────────────────────────────────────
+
+enum EmployeeStatus {
+  active
+  onboarding
+  offboarding
+  on_leave    @map("on-leave")
+  exited
+}
+
+model Employee {
+  id               String         @id @default(cuid())
+  organizationId   String
+  organization     Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  /// Linked platform user once they are a member (matched by email).
+  userId           String?
+  name             String
+  title            String         @default("")
+  departmentId     String
+  locationId       String
+  managerId        String?
+  /// Stored lowercased.
+  email            String
+  startDate        DateTime       @db.Date
+  employmentType   String
+  status           EmployeeStatus @default(onboarding)
+  avatar           Json           @default("{\"body\":1,\"skin\":0,\"hair\":0,\"hairColor\":0,\"outfit\":0,\"outfitColor\":0,\"accessory\":0}")
+  /// Opt-in to the public HQ directory (name + title only).
+  publicDirectory  Boolean        @default(false)
+  emergencyContact String         @default("")
+  lastDay          DateTime?      @db.Date
+  exitedAt         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+
+  documents      EmployeeDocument[]
+  lifecycleTasks LifecycleTask[]
+  leaveRequests  LeaveRequest[]
+  attendance     AttendanceEntry[]
+  reviews        PerformanceReview[]
+  compensation   Compensation?
+
+  @@unique([organizationId, email])
+  @@index([organizationId, status])
+  @@index([organizationId, departmentId])
+  @@index([managerId])
+  @@index([userId])
+}
+
+model EmployeeDocument {
+  id           String   @id @default(cuid())
+  employeeId   String
+  employee     Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  name         String
+  /// contract | id | certificate | policy-ack | other
+  kind         String
+  storageKey   String
+  contentType  String
+  sizeKb       Int
+  addedOn      DateTime @default(now())
+  uploadedById String?
+
+  @@index([employeeId])
+}
+
+model LifecycleTask {
+  id         String   @id @default(cuid())
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  /// onboarding | offboarding
+  phase      String
+  label      String
+  owner      String
+  done       Boolean  @default(false)
+  sortOrder  Int      @default(0)
+
+  @@index([employeeId, phase])
+}
+
+enum LeaveType {
+  annual
+  sick
+  parental
+  study
+  unpaid
+}
+
+enum LeaveStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+model LeaveRequest {
+  id             String      @id @default(cuid())
+  organizationId String
+  employeeId     String
+  employee       Employee    @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  type           LeaveType
+  start          DateTime    @db.Date
+  end            DateTime    @db.Date
+  days           Int
+  reason         String      @default("")
+  status         LeaveStatus @default(pending)
+  decidedById    String?
+  decidedByName  String?
+  decidedAt      DateTime?
+  createdAt      DateTime    @default(now())
+
+  @@index([organizationId, status])
+  @@index([employeeId, start])
+}
+
+model AttendanceEntry {
+  employeeId String
+  employee   Employee  @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  date       DateTime  @db.Date
+  /// present | remote | late | absent | leave
+  status     String
+  clockInAt  DateTime?
+  clockOutAt DateTime?
+  hours      Float     @default(0)
+
+  @@id([employeeId, date])
+  @@index([date])
+}
+
+model PerformanceReview {
+  id             String   @id @default(cuid())
+  organizationId String
+  employeeId     String
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  cycle          String
+  reviewerId     String?
+  reviewerName   String   @default("")
+  /// not-started | self-review | manager-review | calibrated | shared
+  status         String   @default("not-started")
+  rating         Int?
+  /// { title, progress }[]
+  goals          Json     @default("[]")
+  strengths      String   @default("")
+  improvements   String   @default("")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([employeeId, cycle])
+  @@index([organizationId, cycle])
+}
+
+// ── Engagement ──────────────────────────────────────────────────────────────
+
+model Announcement {
+  id             String   @id @default(cuid())
+  organizationId String
+  title          String
+  body           String
+  authorId       String
+  author         String
+  /// all | department | public-hq
+  audience       String
+  departmentId   String?
+  pinned         Boolean  @default(false)
+  publishedAt    DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId, publishedAt])
+}
+
+model Recognition {
+  id             String   @id @default(cuid())
+  organizationId String
+  fromUserId     String
+  from           String
+  toEmployeeId   String
+  value          String
+  message        String
+  at             DateTime @default(now())
+
+  reactions RecognitionReaction[]
+
+  @@index([organizationId, at])
+}
+
+model RecognitionReaction {
+  recognitionId String
+  recognition   Recognition @relation(fields: [recognitionId], references: [id], onDelete: Cascade)
+  userId        String
+  at            DateTime    @default(now())
+
+  @@id([recognitionId, userId])
+}
+
+model Survey {
+  id             String   @id
+  organizationId String
+  title          String
+  /// draft | open | closed
+  status         String
+  anonymous      Boolean
+  /// { id, text, kind }[]
+  questions      Json
+  closesOn       DateTime @db.Date
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  responses   SurveyResponse[]
+  respondents SurveyRespondent[]
+
+  @@index([organizationId])
+}
+
+/// Answers. For anonymous surveys there is no user link and no timestamp.
+model SurveyResponse {
+  id       String    @id @default(cuid())
+  surveyId String
+  survey   Survey    @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  userId   String?
+  answers  Json
+  at       DateTime?
+
+  @@index([surveyId])
+}
+
+/// One-way "has responded" marker: HMAC(surveyId, userId). Cannot be joined back to answers.
+model SurveyRespondent {
+  surveyId String
+  survey   Survey @relation(fields: [surveyId], references: [id], onDelete: Cascade)
+  marker   String
+
+  @@id([surveyId, marker])
+}
+
+model FeedbackItem {
+  id             String   @id @default(cuid())
+  organizationId String
+  /// idea | concern | praise | question
+  category       String
+  body           String
+  /// new | acknowledged | actioned
+  status         String   @default("new")
+  anonymous      Boolean
+  /// Null for anonymous feedback — never stored.
+  authorId       String?
+  authorName     String?
+  at             DateTime @default(now())
+
+  @@index([organizationId, at])
+}
+
+model TeamActivity {
+  id             String   @id
+  organizationId String
+  title          String
+  date           DateTime @db.Date
+  location       String
+  /// social | learning | wellbeing | volunteering
+  kind           String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  rsvps ActivityRsvp[]
+
+  @@index([organizationId, date])
+}
+
+model ActivityRsvp {
+  activityId   String
+  activity     TeamActivity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+  membershipId String
+  at           DateTime     @default(now())
+
+  @@id([activityId, membershipId])
+}
+
+model CultureInitiative {
+  id             String   @id
+  organizationId String
+  title          String
+  owner          String
+  progress       Int
+  /// planned | active | done
+  status         String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([organizationId])
+}
+
+// ── Payroll (preview only) ──────────────────────────────────────────────────
+
+model PayComponent {
+  id             String  @id
+  organizationId String
+  name           String
+  /// allowance | deduction
+  kind           String
+  /// percent | fixed
+  calcType       String
+  calcValue      Float
+  taxable        Boolean
+
+  @@index([organizationId])
+}
+
+model CompensationStructure {
+  id             String   @id
+  organizationId String
+  grade          String
+  minBase        Int
+  maxBase        Int
+  componentIds   String[]
+
+  @@index([organizationId])
+}
+
+model Compensation {
+  employeeId     String   @id
+  employee       Employee @relation(fields: [employeeId], references: [id], onDelete: Cascade)
+  organizationId String
+  structureId    String?
+  baseMonthly    Int
+  currency       String   @default("NGN")
+  effectiveFrom  DateTime @db.Date
+  /// Bank details are never stored in this build.
+  bankOnFile     Boolean  @default(false)
+  /// { date, baseMonthly, reason }[]
+  history        Json     @default("[]")
+
+  @@index([organizationId])
+}
+
+model PayrollPreview {
+  id             String    @id @default(cuid())
+  organizationId String
+  /// YYYY-MM
+  period         String
+  /// draft | approved-preview
+  status         String    @default("draft")
+  /// PayslipPreview[] (with departmentId for reporting)
+  payslips       Json
+  /// { gross, deductions, net, headcount }
+  totals         Json
+  createdById    String
+  createdAt      DateTime  @default(now())
+  approvedAt     DateTime?
+  approvedById   String?
+
+  @@index([organizationId, period])
+}
+
+// ── Social ──────────────────────────────────────────────────────────────────
+
+model CityEvent {
+  id                 String    @id @default(cuid())
+  title              String
+  /// career-fair | meetup | workshop | social | conference
+  kind               String
+  district           String
+  venue              String
+  start              DateTime
+  end                DateTime
+  host               String
+  hostOrganizationId String?
+  description        String    @default("")
+  capacity           Int
+  tags               String[]
+  communityId        String?
+  createdById        String
+  cancelledAt        DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  attendees   EventAttendee[]
+  invitations EventInvitation[]
+
+  @@index([start])
+  @@index([district, start])
+  @@index([hostOrganizationId])
+}
+
+model EventAttendee {
+  eventId String
+  event   CityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  userId  String
+  at      DateTime  @default(now())
+
+  @@id([eventId, userId])
+  @@index([userId])
+}
+
+model EventInvitation {
+  id          String    @id @default(cuid())
+  eventId     String
+  event       CityEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  fromUserId  String
+  toUserId    String
+  /// pending | accepted | declined | cancelled
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@index([toUserId, status])
+  @@index([fromUserId])
+}
+
+model Community {
+  id          String    @id @default(cuid())
+  name        String
+  description String    @default("")
+  topic       String    @default("")
+  district    String
+  archivedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members CommunityMember[]
+  posts   CommunityPost[]
+
+  @@index([district])
+}
+
+model CommunityMember {
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  userId      String
+  at          DateTime  @default(now())
+
+  @@id([communityId, userId])
+  @@index([userId])
+}
+
+model CommunityPost {
+  id          String    @id @default(cuid())
+  communityId String
+  community   Community @relation(fields: [communityId], references: [id], onDelete: Cascade)
+  authorId    String
+  authorName  String
+  text        String
+  removedAt   DateTime?
+  removedBy   String?
+  createdAt   DateTime  @default(now())
+
+  @@index([communityId, createdAt])
+  @@index([authorId])
+}
+
+model Connection {
+  requesterId String
+  addresseeId String
+  /// pending | connected
+  status      String    @default("pending")
+  createdAt   DateTime  @default(now())
+  respondedAt DateTime?
+
+  @@id([requesterId, addresseeId])
+  @@index([addresseeId, status])
+}
+
+// ── Messages ────────────────────────────────────────────────────────────────
+
+model Conversation {
+  id            String    @id @default(cuid())
+  /// The two participants, stored in sorted order so each pair has one conversation.
+  userAId       String
+  userBId       String
+  lastMessageAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  messages Message[]
+
+  @@unique([userAId, userBId])
+  @@index([userAId, lastMessageAt])
+  @@index([userBId, lastMessageAt])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId       String
+  text           String
+  idempotencyKey String?
+  readAt         DateTime?
+  removedAt      DateTime?
+  createdAt      DateTime     @default(now())
+
+  @@unique([senderId, idempotencyKey])
+  @@index([conversationId, createdAt])
+}
+
+// ── Moderation ──────────────────────────────────────────────────────────────
+
+model Report {
+  id         String   @id @default(cuid())
+  reporterId String
+  /// profile | community-post | organization | job | event | message
+  targetType String
+  targetId   String
+  reason     String
+  details    String   @default("")
+  /// open | actioned | dismissed
+  status     String   @default("open")
+  /// { action, note, by, at }
+  resolution Json?
+  createdAt  DateTime @default(now())
+
+  @@index([status, createdAt])
+  @@index([targetType, targetId])
+}
+
+// ── AI career assistant ─────────────────────────────────────────────────────
+
+model AssistantMessage {
+  id                       String   @id @default(cuid())
+  userId                   String
+  /// user | assistant
+  role                     String
+  text                     String
+  /// Jobs the assistant showed in this reply.
+  jobIds                   String[]
+  /// Applications the assistant proposed; nothing is submitted until the user confirms.
+  pendingApplicationJobIds String[]
+  createdAt                DateTime @default(now())
+
+  @@index([userId, createdAt])
+}
+
+// ── Markets billboard ───────────────────────────────────────────────────────
+
+/// One observed price per symbol per provider date (for change and the chart).
+model MarketRate {
+  symbol String
+  date   DateTime @db.Date
+  value  Float
+  asOf   DateTime
+
+  @@id([symbol, date])
+}
+
+// ── Games ───────────────────────────────────────────────────────────────────
+
+model GameAvailability {
+  /// chess | checkers | ludo | pool | puzzle
+  gameId       String   @id
+  /// coming-soon | available | maintenance
+  availability String   @default("coming-soon")
+  message      String?
+  updatedAt    DateTime @updatedAt
+}
+
+model GameSession {
+  id          String    @id @default(cuid())
+  gameId      String
+  /// invite-friend | matchmaking | solo-challenge | practice
+  mode        String
+  /// waiting | active | finished | cancelled
+  status      String    @default("waiting")
+  maxPlayers  Int
+  createdById String
+  /// Opaque state owned by the game engine.
+  state       Json?
+  /// { outcomes: Record<playerId, win|loss|draw|abandoned> }
+  result      Json?
+  finishedAt  DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  players GameSessionPlayer[]
+  invites GameInvite[]
+
+  @@index([gameId, mode, status])
+}
+
+model GameSessionPlayer {
+  sessionId String
+  session   GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  userId    String
+  joinedAt  DateTime    @default(now())
+
+  @@id([sessionId, userId])
+  @@index([userId])
+}
+
+model GameInvite {
+  id         String      @id @default(cuid())
+  sessionId  String
+  session    GameSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  fromUserId String
+  toUserId   String
+  createdAt  DateTime    @default(now())
+
+  @@unique([sessionId, toUserId])
+}
