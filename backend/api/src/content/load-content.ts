@@ -99,7 +99,7 @@ async function main() {
         (ids) => tx.contentAchievement.updateMany({ where: { id: { notIn: ids }, active: true }, data: { active: false } }),
         'Achievements',
       );
-    });
+    }, { timeout: 60_000 });
   } finally {
     await prisma.$disconnect();
   }

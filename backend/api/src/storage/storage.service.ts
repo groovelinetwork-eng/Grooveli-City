@@ -1,4 +1,4 @@
-import { Global, Injectable, Logger, Module, OnModuleInit } from '@nestjs/common';
+import { Global, Injectable, Logger, Module, OnModuleInit, ServiceUnavailableException } from '@nestjs/common';
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -35,11 +35,16 @@ export class StorageService implements OnModuleInit {
   }
 
   async onModuleInit() {
+    const e = env();
+    if (!e.isS3Configured) {
+      this.logger.warn('S3 object storage is not configured. Document and CV uploads will be inactive.');
+      return;
+    }
     this.app.registerReadinessCheck('storage', async () => {
       await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
     });
     // Development convenience only; production buckets are provisioned by infrastructure.
-    if (!env().isProd) {
+    if (!e.isProd) {
       try {
         await this.client.send(new HeadBucketCommand({ Bucket: this.bucket }));
       } catch {
@@ -54,6 +59,9 @@ export class StorageService implements OnModuleInit {
   }
 
   async put(key: string, body: Buffer, contentType: string) {
+    if (!env().isS3Configured) {
+      throw new ServiceUnavailableException('Document storage is not configured yet.');
+    }
     await this.client.send(
       new PutObjectCommand({
         Bucket: this.bucket,

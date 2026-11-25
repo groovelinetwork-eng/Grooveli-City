@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 import { LeaveType, Prisma, User } from '@prisma/client';
+import { PrismaClientKnownRequestError } from '@prisma/client/runtime/library';
 import { randomUUID } from 'node:crypto';
 import { AuditService } from '../audit/audit.service';
 import type { OrgContext } from '../auth/auth.decorators';
@@ -49,7 +50,7 @@ export class HrService {
     private readonly audit: AuditService,
     private readonly storage: StorageService,
     private readonly notifications: NotificationService,
-  ) {}
+  ) { }
 
   // ── Scope helpers ────────────────────────────────────────────────────────
   private isHr(org: OrgContext) {
@@ -143,7 +144,7 @@ export class HrService {
       });
       return { employeeId: employee.id };
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'An employee with this email already exists');
+      if (err instanceof PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'An employee with this email already exists');
       throw err;
     }
   }
@@ -171,7 +172,7 @@ export class HrService {
       await this.audit.record({ action: 'employee.updated', targetType: 'employee', targetId: employeeId, actorId: actor.user.id, organizationId: orgId, ip: actor.ip, details: { fields: Object.keys(patch) } });
       return toApiEmployee(updated, true);
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'An employee with this email already exists');
+      if (err instanceof PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'An employee with this email already exists');
       throw err;
     }
   }
@@ -199,10 +200,10 @@ export class HrService {
     const orgId = org.organization.id;
     const e = await this.employee(orgId, employeeId);
     if (e.status !== 'offboarding') throw new ApiError(HttpStatus.CONFLICT, 'NOT_ALLOWED_IN_STATE', 'Start offboarding first');
-    const open = e.lifecycleTasks.filter((t) => t.phase === 'offboarding' && !t.done);
+    const open = e.lifecycleTasks.filter((t: { phase: string; done: boolean }) => t.phase === 'offboarding' && !t.done);
     if (open.length) throw new ApiError(HttpStatus.CONFLICT, 'NOT_ALLOWED_IN_STATE', `Finish the offboarding tasks first (${open.length} open)`);
 
-    const updated = await this.prisma.$transaction(async (tx) => {
+    const updated = await this.prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       if (e.userId) {
         const m = await tx.membership.findUnique({ where: { organizationId_userId: { organizationId: orgId, userId: e.userId } } });
         if (m) {
@@ -240,7 +241,7 @@ export class HrService {
   async documents(org: OrgContext, employeeId: string) {
     if (!this.isHr(org) && !this.isSelf(org, employeeId)) this.forbidden();
     const e = await this.employee(org.organization.id, employeeId);
-    return e.documents.sort((a, b) => a.addedOn.getTime() - b.addedOn.getTime()).map(toApiDocument);
+    return e.documents.sort((a: { addedOn: Date }, b: { addedOn: Date }) => a.addedOn.getTime() - b.addedOn.getTime()).map(toApiDocument);
   }
 
   async uploadDocument(org: OrgContext, employeeId: string, file: Express.Multer.File | undefined, meta: { kind: string; name: string }, actor: Actor) {
@@ -286,11 +287,11 @@ export class HrService {
   private async directReportIds(org: OrgContext) {
     const me = this.me(org);
     if (!me) return [];
-    return (await this.prisma.employee.findMany({ where: { organizationId: org.organization.id, managerId: me }, select: { id: true } })).map((e) => e.id);
+    return (await this.prisma.employee.findMany({ where: { organizationId: org.organization.id, managerId: me }, select: { id: true } })).map((e: { id: string }) => e.id);
   }
 
   /** Employees whose leave/reviews the caller may manage: everyone for HR, direct reports for managers. */
-  private async managedScope(org: OrgContext): Promise<Prisma.StringFilter | undefined> {
+  private async managedScope(org: OrgContext): Promise<{ in: string[] } | undefined> {
     if (this.isHr(org)) return undefined;
     return { in: await this.directReportIds(org) };
   }
@@ -298,7 +299,7 @@ export class HrService {
   async listLeave(org: OrgContext, q: { status?: string; employeeId?: string; from?: string; to?: string }, page: PageQuery) {
     const canApprove = org.permissions.has('hr.leave.approve');
     const me = this.me(org);
-    let employeeFilter: Prisma.StringFilter | string | undefined;
+    let employeeFilter: { in: string[] } | string | undefined;
     if (canApprove) {
       const scope = await this.managedScope(org);
       employeeFilter = scope ? { in: [...(scope.in as string[]), ...(me ? [me] : [])] } : undefined;
@@ -306,7 +307,7 @@ export class HrService {
       if (!me) return toPage([], 0, page);
       employeeFilter = me;
     }
-    const where: Prisma.LeaveRequestWhereInput = {
+    const where: NonNullable<Parameters<typeof this.prisma.leaveRequest.findMany>[0]>['where'] = {
       organizationId: org.organization.id,
       AND: [
         ...(employeeFilter ? [{ employeeId: employeeFilter }] : []),
@@ -333,7 +334,7 @@ export class HrService {
       _sum: { days: true },
     });
     const types: LeaveType[] = ['annual', 'sick', 'parental', 'study', 'unpaid'];
-    return Object.fromEntries(types.map((t) => [t, Math.max(0, (allowances[t] ?? 0) - (used.find((u) => u.type === t)?._sum.days ?? 0))])) as Record<LeaveType, number>;
+    return Object.fromEntries(types.map((t) => [t, Math.max(0, (allowances[t] ?? 0) - (used.find((u: { type: LeaveType; _sum: { days: number | null } }) => u.type === t)?._sum.days ?? 0))])) as Record<LeaveType, number>;
   }
 
   async requestLeave(org: OrgContext, input: { employeeId: string; type: LeaveType; start: string; end: string; reason: string }, actor: Actor) {
@@ -410,7 +411,7 @@ export class HrService {
       const me = this.me(org);
       scope = [...(org.permissions.has('hr.leave.approve') ? await this.directReportIds(org) : []), ...(me ? [me] : [])];
     }
-    const where: Prisma.AttendanceEntryWhereInput = {
+    const where: NonNullable<Parameters<typeof this.prisma.attendanceEntry.findMany>[0]>['where'] = {
       employee: { organizationId: org.organization.id },
       ...(scope ? { AND: [{ employeeId: { in: scope } }] } : {}),
       ...(q.employeeId ? { employeeId: q.employeeId } : {}),
@@ -436,7 +437,7 @@ export class HrService {
       const entry = await this.prisma.attendanceEntry.create({ data: { employeeId, date, status: late ? 'late' : status, clockInAt: new Date() } });
       return toApiAttendance(entry);
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'You already clocked in today');
+      if (err instanceof PrismaClientKnownRequestError && err.code === 'P2002') throw new ApiError(HttpStatus.CONFLICT, 'CONFLICT', 'You already clocked in today');
       throw err;
     }
   }
@@ -454,7 +455,7 @@ export class HrService {
 
   // ── Performance reviews ──────────────────────────────────────────────────
   async reviews(org: OrgContext, q: { cycle?: string; employeeId?: string }) {
-    let employeeFilter: Prisma.StringFilter | string | undefined;
+    let employeeFilter: { in: string[] } | string | undefined;
     if (org.permissions.has('hr.performance.manage')) {
       const scope = await this.managedScope(org);
       const me = this.me(org);

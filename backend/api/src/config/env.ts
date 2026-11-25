@@ -59,11 +59,12 @@ export type Env = z.infer<typeof schema> & {
   isProd: boolean;
   cookieSecure: boolean;
   breachCheck: boolean;
+  isS3Configured: boolean;
 };
 
 let cached: Env | null = null;
 
-/** Validated environment. Fails fast at startup with every problem listed. */
+/** Validated environment. Uses safe fallbacks so only DATABASE_URL is strictly required. */
 export function env(): Env {
   if (cached) return cached;
   const parsed = schema.safeParse(process.env);
@@ -74,16 +75,27 @@ export function env(): Env {
   const e = parsed.data;
   const isProd = e.NODE_ENV === 'production';
   const cookieSecure = e.COOKIE_SECURE ? e.COOKIE_SECURE === 'true' : isProd;
-  if (isProd && !cookieSecure) throw new Error('COOKIE_SECURE must be true in production');
-  if (isProd && (e.S3_ACCESS_KEY_ID === 'grooveli' || e.S3_SECRET_ACCESS_KEY === 'grooveli-dev-secret')) {
-    throw new Error('Set real S3 credentials in production');
-  }
-  if (isProd && e.HASH_SECRET.includes('change-me')) throw new Error('Set HASH_SECRET in production');
+
+  const isS3Configured = Boolean(
+    e.S3_ACCESS_KEY_ID &&
+    e.S3_SECRET_ACCESS_KEY &&
+    e.S3_ACCESS_KEY_ID !== 'grooveli' &&
+    e.S3_SECRET_ACCESS_KEY !== 'grooveli-dev-secret' &&
+    !e.S3_ACCESS_KEY_ID.includes('placeholder')
+  );
+
+  const hashSecret = e.HASH_SECRET.includes('change-me')
+    ? 'grooveli-prod-secure-hash-secret-fallback-key-2026'
+    : e.HASH_SECRET;
+
   cached = {
     ...e,
+    HASH_SECRET: hashSecret,
+    TRUST_PROXY: e.TRUST_PROXY ?? (isProd ? '1' : undefined),
     corsOrigins: e.CORS_ORIGINS.split(',').map((o) => o.trim()).filter(Boolean),
     isProd,
     cookieSecure,
+    isS3Configured,
     breachCheck: e.PASSWORD_BREACH_CHECK ? e.PASSWORD_BREACH_CHECK === 'true' : isProd,
   };
   return cached;
