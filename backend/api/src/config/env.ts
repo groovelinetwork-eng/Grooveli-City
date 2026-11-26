@@ -7,7 +7,11 @@ const bool = (fallback: boolean) =>
     .transform((v) => (v === undefined ? fallback : v === 'true' || v === '1'));
 
 const schema = z.object({
-  NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  NODE_ENV: z
+    .string()
+    .optional()
+    .transform((v) => (v ? v.toLowerCase().trim() : 'development'))
+    .pipe(z.enum(['development', 'test', 'production'])),
   PORT: z.coerce.number().int().positive().default(4000),
   DATABASE_URL: z.string().url(),
   CORS_ORIGINS: z.string().default('http://localhost:3000,http://localhost:3001'),
