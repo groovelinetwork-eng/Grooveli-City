@@ -64,6 +64,41 @@ Tests (real Postgres database `grooveli_test`, real S3; create it once with `doc
 pnpm --filter @grooveli/api test:e2e
 ```
 
+## Demo data (seed from the frontend fixtures)
+
+`pnpm --filter @grooveli/api db:seed` fills a database with the same demo data the frontend shows: 9 organisations, 32 jobs, 60 applications, interviews, assessments, 42 employees with leave, attendance, reviews and payroll, events, communities, people and engagement items. It also creates one login per role. Every record has a fixed ID, so running it again updates rather than duplicates. Dates are shifted so the frontend's demo "today" becomes the real today.
+
+| Role | Email |
+|---|---|
+| Candidate | `tolu@grooveli.example` |
+| Org-admin (Kestrel Systems + Amberline Health) | `ifeoma@kestrel.example` |
+| HR manager | `daniel@kestrel.example` |
+| Recruiter | `zainab@kestrel.example` |
+| Payroll officer | `chidi@kestrel.example` |
+| Employee + line manager | `kofi@kestrel.example` |
+| HR + recruiter (Amberline Health) | `grace@amberline.example` |
+| Platform admin | `admin@grooveli.example` |
+
+All logins share the password given in `SEED_PASSWORD` (for a database on your own machine it defaults to `local-demo-password`; for any other database you must set it). The other seeded people (talent pool, people directory, post authors) can't sign in.
+
+```bash
+pnpm --filter @grooveli/api db:content      # missions, courses, challenges (once)
+pnpm --filter @grooveli/api db:seed
+```
+
+**On a deployed (production-mode) database** the seed refuses to run unless you also set `SEED_CONFIRM=seed-demo-data`, so it can't land in a real production database by accident. From your machine, using the database's external connection string:
+
+```bash
+DATABASE_URL="<external connection string>" NODE_ENV=production SEED_CONFIRM=seed-demo-data SEED_PASSWORD="<strong password>" pnpm --filter @grooveli/api db:content
+DATABASE_URL="<external connection string>" NODE_ENV=production SEED_CONFIRM=seed-demo-data SEED_PASSWORD="<strong password>" pnpm --filter @grooveli/api db:seed
+```
+
+The demo logins include a platform admin. Use a strong password, and remove or re-password these accounts before real users arrive.
+
+When the frontend team changes their fixtures, refresh the snapshot with `pnpm --filter @grooveli/api seed:export` (writes `prisma/seed/frontend-fixtures.json`).
+
+Differences from the frontend demo: 11 duplicate applications in the fixtures (same candidate, same job) are skipped. Display-only numbers such as "134 attending" or "1,840 members" become real counts. Survey answers aren't seeded because the fixtures use a 0–10 scale and the API uses 1–5.
+
 ## Implementation status
 
 **Built and tested against a real Postgres (step 1):**

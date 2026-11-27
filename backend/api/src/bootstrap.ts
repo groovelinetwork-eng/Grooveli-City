@@ -32,11 +32,19 @@ export function configureApp(app: NestExpressApplication) {
   });
 
   // CSRF protection for cookie auth: state-changing requests from a browser
-  // must come from an allowed origin. (Requests without Origin are not from a
-  // cross-site browser context.)
+  // must come from an allowed origin. Requests without Origin are not from a
+  // cross-site browser context, and the API's own pages (Swagger UI) are
+  // same-origin, so both are allowed.
+  const sameOrigin = (origin: string, host: string | undefined) => {
+    try {
+      return !!host && new URL(origin).host === host;
+    } catch {
+      return false;
+    }
+  };
   app.use((req: Request & { requestId?: string }, res: Response, next: NextFunction) => {
     const origin = req.header('origin');
-    if (SAFE_METHODS.has(req.method) || !origin || e.corsOrigins.includes(origin)) return next();
+    if (SAFE_METHODS.has(req.method) || !origin || e.corsOrigins.includes(origin) || sameOrigin(origin, req.header('host'))) return next();
     res.status(HttpStatus.FORBIDDEN).json({
       success: false,
       message: 'Origin not allowed',
