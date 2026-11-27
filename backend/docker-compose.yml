@@ -1,0 +1,41 @@
+# Local development services for the API.
+#   docker compose -f backend/docker-compose.yml up -d
+services:
+  postgres:
+    image: postgres:16.6-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: grooveli
+      POSTGRES_PASSWORD: grooveli
+      POSTGRES_DB: grooveli
+    ports:
+      - "5440:5432"
+    volumes:
+      - grooveli-pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U grooveli -d grooveli"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Catches every email the API sends in development. Web UI: http://localhost:8025
+  mailpit:
+    image: axllent/mailpit:v1.21
+    restart: unless-stopped
+    ports:
+      - "1025:1025"
+      - "8025:8025"
+
+  # S3-compatible object storage for CVs and HR documents (dev only; production uses a real S3 bucket).
+  s3:
+    image: chrislusf/seaweedfs:3.85
+    restart: unless-stopped
+    command: server -s3 -s3.port=8333 -dir=/data -master.volumeSizeLimitMB=256
+    ports:
+      - "8333:8333"
+    volumes:
+      - grooveli-files:/data
+
+volumes:
+  grooveli-pg:
+  grooveli-files:
