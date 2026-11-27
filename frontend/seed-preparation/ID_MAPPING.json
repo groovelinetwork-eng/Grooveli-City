@@ -1,0 +1,1488 @@
+{
+  "note": "Every mock id is kept unchanged unless listed here. User ids reuse the mock id where one exists (cand-demo, talent-NN, soc-N); otherwise they are derived. All emails use reserved .example domains.",
+  "testAccounts": [
+    {
+      "role": "Platform administrator",
+      "userId": "seed-platform-admin",
+      "email": "platform-admin@grooveli.example",
+      "displayName": "Grooveli City Team",
+      "platformRole": "admin",
+      "memberships": []
+    },
+    {
+      "role": "Candidate",
+      "userId": "cand-demo",
+      "email": "tolu.adebayo@candidate.example",
+      "displayName": "Tolu Adebayo",
+      "platformRole": "none",
+      "memberships": []
+    },
+    {
+      "role": "Organisation admin",
+      "userId": "user-ifeoma-nwosu",
+      "email": "ifeoma@kestrel.example",
+      "displayName": "Ifeoma Nwosu",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "kestrel-systems",
+          "roles": [
+            "org-admin"
+          ],
+          "employeeId": null
+        },
+        {
+          "organizationId": "amberline-health",
+          "roles": [
+            "org-admin"
+          ],
+          "employeeId": null
+        }
+      ]
+    },
+    {
+      "role": "HR manager",
+      "userId": "user-daniel-mensah",
+      "email": "daniel@kestrel.example",
+      "displayName": "Daniel Mensah",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "kestrel-systems",
+          "roles": [
+            "hr-manager"
+          ],
+          "employeeId": null
+        }
+      ]
+    },
+    {
+      "role": "Recruiter",
+      "userId": "user-zainab-bello",
+      "email": "zainab@kestrel.example",
+      "displayName": "Zainab Bello",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "kestrel-systems",
+          "roles": [
+            "recruiter"
+          ],
+          "employeeId": null
+        }
+      ]
+    },
+    {
+      "role": "Payroll officer",
+      "userId": "user-chidi-okeke",
+      "email": "chidi@kestrel.example",
+      "displayName": "Chidi Okeke",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "kestrel-systems",
+          "roles": [
+            "payroll-officer"
+          ],
+          "employeeId": null
+        }
+      ]
+    },
+    {
+      "role": "HR manager + recruiter",
+      "userId": "soc-3",
+      "email": "grace@amberline.example",
+      "displayName": "Grace Ayodele",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "amberline-health",
+          "roles": [
+            "hr-manager",
+            "recruiter"
+          ],
+          "employeeId": null
+        }
+      ]
+    },
+    {
+      "role": "Employee + line manager",
+      "userId": "soc-2",
+      "email": "kofi@kestrel.example",
+      "displayName": "Kofi Asante",
+      "platformRole": "none",
+      "memberships": [
+        {
+          "organizationId": "kestrel-systems",
+          "roles": [
+            "employee",
+            "manager"
+          ],
+          "employeeId": "emp-kestrel-01"
+        }
+      ]
+    }
+  ],
+  "employeePersonaIdentity": {
+    "decision": "merged: one person, canonical name \"Kofi Asante\"",
+    "evidence": [
+      "EMPLOYEE_PERSONA_ID is defined as \"the head of Kestrel Engineering\" (frontend/domain/src/fixtures/employees.ts) and resolves to emp-kestrel-01.",
+      "emp-kestrel-01: title \"Engineering Manager\", head of Engineering.",
+      "Persona \"Kofi Asante\": \"Engineering manager using self-service\" (frontend/domain/src/permissions.ts).",
+      "Social profile soc-2 \"Kofi Asante\": headline \"Engineering Manager\", district tech.",
+      "\"Kofi Asante\" is also the Engineering interviewer and assessment reviewer in the recruitment fixtures.",
+      "\"Thabo Abubakar\" is produced by the random name generator (buildStaff) and appears in no hand-written mock source."
+    ],
+    "employeeRecord": "emp-kestrel-01",
+    "account": "soc-2",
+    "changes": [
+      {
+        "field": "Employee.name",
+        "from": "Thabo Abubakar",
+        "to": "Kofi Asante"
+      },
+      {
+        "field": "Employee.email",
+        "from": "thabo.abubakar@kestrel.example",
+        "to": "kofi@kestrel.example",
+        "why": "one email for the person: the account and the HR record match (the backend links members to employees by email)"
+      },
+      {
+        "field": "Employee.avatar",
+        "from": "random avatar of the generated record",
+        "to": "avatar of social profile soc-2",
+        "why": "one appearance for the person in the city, social and HR views"
+      }
+    ],
+    "rewrittenReferences": [
+      "PerformanceReview rev-emp-kestrel-06: reviewer \"Thabo Abubakar\" → \"Kofi Asante\"",
+      "PerformanceReview rev-emp-kestrel-11: reviewer \"Thabo Abubakar\" → \"Kofi Asante\"",
+      "PerformanceReview rev-emp-kestrel-16: reviewer \"Thabo Abubakar\" → \"Kofi Asante\"",
+      "PerformanceReview rev-emp-kestrel-21: reviewer \"Thabo Abubakar\" → \"Kofi Asante\"",
+      "PerformanceReview rev-emp-kestrel-26: reviewer \"Thabo Abubakar\" → \"Kofi Asante\""
+    ],
+    "kept": "Employment data stays as in the record: title, department, manager, start date, status, leave, attendance, reviews, compensation, recognition received."
+  },
+  "accounts": [
+    {
+      "userId": "seed-platform-admin",
+      "email": "platform-admin@grooveli.example",
+      "displayName": "Grooveli City Team",
+      "accountType": "organization",
+      "platformRole": "admin",
+      "reason": "Required as CityEvent.createdById for events no organisation admin hosts; also the platform-admin test account.",
+      "sources": [
+        "derived"
+      ],
+      "testAccountFor": "Platform administrator"
+    },
+    {
+      "userId": "cand-demo",
+      "email": "tolu.adebayo@candidate.example",
+      "displayName": "Tolu Adebayo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Candidate persona (signs in).",
+      "sources": [
+        "DEMO_CANDIDATE (frontend/domain/src/fixtures/career.ts)",
+        "persona: candidate"
+      ],
+      "testAccountFor": "Candidate"
+    },
+    {
+      "userId": "user-ifeoma-nwosu",
+      "email": "ifeoma@kestrel.example",
+      "displayName": "Ifeoma Nwosu",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Workspace member in the mock (signs in).",
+      "sources": [
+        "workspace member mem-k-1 (kestrel-systems)",
+        "persona: org-admin",
+        "workspace member mem-a-1 (amberline-health)"
+      ],
+      "testAccountFor": "Organisation admin"
+    },
+    {
+      "userId": "user-daniel-mensah",
+      "email": "daniel@kestrel.example",
+      "displayName": "Daniel Mensah",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Workspace member in the mock (signs in).",
+      "sources": [
+        "workspace member mem-k-2 (kestrel-systems)",
+        "persona: hr-manager"
+      ],
+      "testAccountFor": "HR manager"
+    },
+    {
+      "userId": "user-zainab-bello",
+      "email": "zainab@kestrel.example",
+      "displayName": "Zainab Bello",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Workspace member in the mock (signs in).",
+      "sources": [
+        "workspace member mem-k-3 (kestrel-systems)",
+        "persona: recruiter"
+      ],
+      "testAccountFor": "Recruiter"
+    },
+    {
+      "userId": "user-chidi-okeke",
+      "email": "chidi@kestrel.example",
+      "displayName": "Chidi Okeke",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Workspace member in the mock (signs in).",
+      "sources": [
+        "workspace member mem-k-4 (kestrel-systems)",
+        "persona: payroll-officer"
+      ],
+      "testAccountFor": "Payroll officer"
+    },
+    {
+      "userId": "soc-3",
+      "email": "grace@amberline.example",
+      "displayName": "Grace Ayodele",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Workspace member in the mock (signs in).",
+      "sources": [
+        "workspace member mem-a-2 (amberline-health)",
+        "social profile soc-3"
+      ],
+      "testAccountFor": "HR manager + recruiter"
+    },
+    {
+      "userId": "soc-2",
+      "email": "kofi@kestrel.example",
+      "displayName": "Kofi Asante",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "Employee + line-manager persona (signs in; self-service).",
+      "sources": [
+        "persona: employee",
+        "HR employee record emp-kestrel-01",
+        "social profile soc-2"
+      ],
+      "testAccountFor": "Employee + line manager"
+    },
+    {
+      "userId": "user-emp-kestrel-04",
+      "email": "lerato.okonkwo@kestrel.example",
+      "displayName": "Lerato Okonkwo",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-1 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-04"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "user-emp-kestrel-05",
+      "email": "joseph.nwankwo@kestrel.example",
+      "displayName": "Joseph Nwankwo",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-2 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-05"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "user-emp-kestrel-06",
+      "email": "zara.akande@kestrel.example",
+      "displayName": "Zara Akande",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-3 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-06"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "user-emp-kestrel-07",
+      "email": "abena.sanni@kestrel.example",
+      "displayName": "Abena Sanni",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-4 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-07"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "user-emp-kestrel-08",
+      "email": "mariam.nkosi@kestrel.example",
+      "displayName": "Mariam Nkosi",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-5 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-08"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "user-emp-kestrel-09",
+      "email": "temitope.chukwu@kestrel.example",
+      "displayName": "Temitope Chukwu",
+      "accountType": "organization",
+      "platformRole": "none",
+      "reason": "sender of recognition rec-k-6 (Recognition.fromUserId is required)",
+      "sources": [
+        "HR employee record emp-kestrel-09"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-01",
+      "email": "talent-01@talent.example",
+      "displayName": "Chiamaka Oyelaran",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-01"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-02",
+      "email": "talent-02@talent.example",
+      "displayName": "Efua Chukwu",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-02"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-03",
+      "email": "talent-03@talent.example",
+      "displayName": "Samuel Abubakar",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-03"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-04",
+      "email": "talent-04@talent.example",
+      "displayName": "Yusuf Nkosi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-04"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-05",
+      "email": "talent-05@talent.example",
+      "displayName": "Esi Adeyemi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-05"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-06",
+      "email": "talent-06@talent.example",
+      "displayName": "Abena Nkosi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-06"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-07",
+      "email": "talent-07@talent.example",
+      "displayName": "Efua Boateng",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-07"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-08",
+      "email": "talent-08@talent.example",
+      "displayName": "Obinna Akande",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-08"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-09",
+      "email": "talent-09@talent.example",
+      "displayName": "Thabo Nkosi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-09"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-10",
+      "email": "talent-10@talent.example",
+      "displayName": "Tunde Afolabi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-10"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-11",
+      "email": "talent-11@talent.example",
+      "displayName": "Lerato Mensah",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-11"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-12",
+      "email": "talent-12@talent.example",
+      "displayName": "Abena Adeyemi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-12"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-13",
+      "email": "talent-13@talent.example",
+      "displayName": "Fatima Adeyemi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-13"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-14",
+      "email": "talent-14@talent.example",
+      "displayName": "Tunde Akande",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-14"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-15",
+      "email": "talent-15@talent.example",
+      "displayName": "Ngozi Boateng",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-15"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-16",
+      "email": "talent-16@talent.example",
+      "displayName": "Ayodeji Mensah",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-16"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-17",
+      "email": "talent-17@talent.example",
+      "displayName": "Seun Akande",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-17"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-18",
+      "email": "talent-18@talent.example",
+      "displayName": "Aisha Eze",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-18"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-19",
+      "email": "talent-19@talent.example",
+      "displayName": "Temitope Mensah",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-19"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-20",
+      "email": "talent-20@talent.example",
+      "displayName": "Seun Afolabi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-20"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-21",
+      "email": "talent-21@talent.example",
+      "displayName": "Kemi Chukwu",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-21"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-22",
+      "email": "talent-22@talent.example",
+      "displayName": "Esi Achebe",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-22"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-23",
+      "email": "talent-23@talent.example",
+      "displayName": "Joseph Bello",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-23"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-24",
+      "email": "talent-24@talent.example",
+      "displayName": "Obinna Okonkwo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-24"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-25",
+      "email": "talent-25@talent.example",
+      "displayName": "Blessing Bello",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-25"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-26",
+      "email": "talent-26@talent.example",
+      "displayName": "Ibrahim Nwankwo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-26"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-27",
+      "email": "talent-27@talent.example",
+      "displayName": "Fatima Ibrahim",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-27"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-28",
+      "email": "talent-28@talent.example",
+      "displayName": "Kwame Afolabi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-28"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-29",
+      "email": "talent-29@talent.example",
+      "displayName": "Hadiza Okonkwo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-29"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-30",
+      "email": "talent-30@talent.example",
+      "displayName": "Ibrahim Lawal",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-30"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-31",
+      "email": "talent-31@talent.example",
+      "displayName": "Mariam Nwankwo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-31"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-32",
+      "email": "talent-32@talent.example",
+      "displayName": "Mariam Achebe",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-32"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-33",
+      "email": "talent-33@talent.example",
+      "displayName": "Temitope Eze",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-33"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-34",
+      "email": "talent-34@talent.example",
+      "displayName": "Yusuf Boateng",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-34"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-35",
+      "email": "talent-35@talent.example",
+      "displayName": "Obinna Achebe",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-35"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-36",
+      "email": "talent-36@talent.example",
+      "displayName": "Aisha Akande",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-36"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-37",
+      "email": "talent-37@talent.example",
+      "displayName": "Yusuf Okonkwo",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-37"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-38",
+      "email": "talent-38@talent.example",
+      "displayName": "Emeka Owusu",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-38"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-39",
+      "email": "talent-39@talent.example",
+      "displayName": "Kwame Ogunleye",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-39"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "talent-40",
+      "email": "talent-40@talent.example",
+      "displayName": "Aisha Chukwu",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Applicant: Application.candidateId must be a user.",
+      "sources": [
+        "TALENT_POOL talent-40"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-1",
+      "email": "soc-1@social.example",
+      "displayName": "Amara Eze",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-1"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-4",
+      "email": "soc-4@social.example",
+      "displayName": "Seun Lawal",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-4"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-5",
+      "email": "soc-5@social.example",
+      "displayName": "Zara Nkosi",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-5"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-6",
+      "email": "soc-6@social.example",
+      "displayName": "Musa Danjuma",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-6"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-7",
+      "email": "soc-7@social.example",
+      "displayName": "Efua Boateng",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-7"
+      ],
+      "testAccountFor": null
+    },
+    {
+      "userId": "soc-8",
+      "email": "soc-8@social.example",
+      "displayName": "Obinna Chukwu",
+      "accountType": "candidate",
+      "platformRole": "none",
+      "reason": "Person in Social → People (author of community posts, connections).",
+      "sources": [
+        "SOCIAL_PROFILES soc-8"
+      ],
+      "testAccountFor": null
+    }
+  ],
+  "derivedIds": {
+    "users": "user-<name-slug> for workspace members without a social profile; user-<employeeId> for the employee accounts; seed-platform-admin.",
+    "memberships": "mock OrgMember ids are kept (mem-k-1 …); employee memberships are mem-<employeeId>; the employee persona is mem-k-soc-2.",
+    "surveyResponses": "<surveyId>-rNN in mock order.",
+    "communityPosts": "<communityId>-<mock post id>."
+  },
+  "remapped": {
+    "applicationMerges": [
+      {
+        "jobId": "job-k-backend",
+        "candidateId": "talent-01",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-6",
+          "status": "interview",
+          "submittedAt": "2026-11-06T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "interview"
+          ],
+          "fitScore": 90,
+          "linked": {
+            "interviews": [
+              "int-seed-2"
+            ],
+            "assessments": [],
+            "shortlists": [
+              "sl-backend"
+            ]
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-1",
+            "status": "submitted",
+            "submittedAt": "2026-11-06T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 48,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "the only record other records reference (interview int-seed-2, shortlist sl-backend)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-frontend",
+        "candidateId": "talent-03",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-7",
+          "status": "hired",
+          "submittedAt": "2026-11-07T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "hired"
+          ],
+          "fitScore": 61,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-12",
+            "status": "submitted",
+            "submittedAt": "2026-11-08T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 62,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "furthest pipeline progression (hired vs submitted)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-pd",
+        "candidateId": "talent-05",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-18",
+          "status": "offer",
+          "submittedAt": "2026-11-05T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "offer"
+          ],
+          "fitScore": 53,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-13",
+            "status": "shortlisted",
+            "submittedAt": "2026-11-04T10:00:00.000Z",
+            "history": [
+              "submitted",
+              "shortlisted"
+            ],
+            "fitScore": 91,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "furthest pipeline progression (offer vs shortlisted)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-people",
+        "candidateId": "talent-35",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-23",
+          "status": "offer",
+          "submittedAt": "2026-11-07T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "offer"
+          ],
+          "fitScore": 92,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-28",
+            "status": "rejected",
+            "submittedAt": "2026-11-07T10:00:00.000Z",
+            "history": [
+              "submitted",
+              "rejected"
+            ],
+            "fitScore": 44,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "furthest pipeline progression (offer vs rejected; a rejected/withdrawn duplicate has no history explaining an outcome after the other record's progress)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-devops",
+        "candidateId": "talent-37",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-29",
+          "status": "interview",
+          "submittedAt": "2026-11-02T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "interview"
+          ],
+          "fitScore": 66,
+          "linked": {
+            "interviews": [
+              "int-seed-8"
+            ],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-34",
+            "status": "submitted",
+            "submittedAt": "2026-11-02T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 88,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "the only record other records reference (interview int-seed-8)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-intern",
+        "candidateId": "talent-39",
+        "classification": "repeated fixture data",
+        "canonical": {
+          "id": "app-seed-35",
+          "status": "submitted",
+          "submittedAt": "2026-11-05T10:00:00.000Z",
+          "history": [
+            "submitted"
+          ],
+          "fitScore": 58,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-40",
+            "status": "submitted",
+            "submittedAt": "2026-11-05T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 94,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "same status and submission time; nothing distinguishes them, so the first in fixture order is kept",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-intern",
+        "candidateId": "talent-07",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-36",
+          "status": "hired",
+          "submittedAt": "2026-11-04T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "hired"
+          ],
+          "fitScore": 74,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-41",
+            "status": "screening",
+            "submittedAt": "2026-11-04T10:00:00.000Z",
+            "history": [
+              "submitted",
+              "screening"
+            ],
+            "fitScore": 50,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "furthest pipeline progression (hired vs screening)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-sec",
+        "candidateId": "talent-36",
+        "classification": "repeated fixture data",
+        "canonical": {
+          "id": "app-seed-51",
+          "status": "interview",
+          "submittedAt": "2026-10-28T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "interview"
+          ],
+          "fitScore": 59,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-46",
+            "status": "interview",
+            "submittedAt": "2026-10-29T10:00:00.000Z",
+            "history": [
+              "submitted",
+              "interview"
+            ],
+            "fitScore": 72,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "same status (interview); earliest submission (2026-10-28 vs 2026-10-29), the later record repeats it",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-k-sec",
+        "candidateId": "talent-04",
+        "classification": "conflicting application history",
+        "canonical": {
+          "id": "app-seed-52",
+          "status": "shortlisted",
+          "submittedAt": "2026-10-28T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "shortlisted"
+          ],
+          "fitScore": 70,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-47",
+            "status": "submitted",
+            "submittedAt": "2026-10-30T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 49,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "furthest pipeline progression (shortlisted vs submitted)",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-a-healthtech",
+        "candidateId": "talent-09",
+        "classification": "repeated fixture data",
+        "canonical": {
+          "id": "app-seed-70",
+          "status": "submitted",
+          "submittedAt": "2026-10-31T10:00:00.000Z",
+          "history": [
+            "submitted"
+          ],
+          "fitScore": 54,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-65",
+            "status": "submitted",
+            "submittedAt": "2026-11-01T10:00:00.000Z",
+            "history": [
+              "submitted"
+            ],
+            "fitScore": 59,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "same status (submitted); earliest submission (2026-10-31 vs 2026-11-01), the later record repeats it",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      },
+      {
+        "jobId": "job-a-healthtech",
+        "candidateId": "talent-17",
+        "classification": "repeated fixture data",
+        "canonical": {
+          "id": "app-seed-71",
+          "status": "offer",
+          "submittedAt": "2026-10-30T10:00:00.000Z",
+          "history": [
+            "submitted",
+            "offer"
+          ],
+          "fitScore": 62,
+          "linked": {
+            "interviews": [],
+            "assessments": [],
+            "shortlists": []
+          }
+        },
+        "dropped": [
+          {
+            "id": "app-seed-66",
+            "status": "offer",
+            "submittedAt": "2026-10-31T10:00:00.000Z",
+            "history": [
+              "submitted",
+              "offer"
+            ],
+            "fitScore": 69,
+            "linked": {
+              "interviews": [],
+              "assessments": [],
+              "shortlists": []
+            }
+          }
+        ],
+        "reason": "same status (offer); earliest submission (2026-10-30 vs 2026-10-31), the later record repeats it",
+        "remappedReferences": [],
+        "note": "The canonical record keeps its own history; histories are never combined."
+      }
+    ],
+    "payroll": [
+      {
+        "table": "PayComponent",
+        "organizationId": "amberline-health",
+        "mockId": "pc-housing",
+        "seedId": "pc-housing-a"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "amberline-health",
+        "mockId": "pc-transport",
+        "seedId": "pc-transport-a"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "amberline-health",
+        "mockId": "pc-remote",
+        "seedId": "pc-remote-a"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "amberline-health",
+        "mockId": "pc-pension",
+        "seedId": "pc-pension-a"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "amberline-health",
+        "mockId": "pc-hmo",
+        "seedId": "pc-hmo-a"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "amberline-health",
+        "mockId": "cs-g1",
+        "seedId": "cs-g1-a"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "amberline-health",
+        "mockId": "cs-g2",
+        "seedId": "cs-g2-a"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "amberline-health",
+        "mockId": "cs-g3",
+        "seedId": "cs-g3-a"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "amberline-health",
+        "mockId": "cs-g4",
+        "seedId": "cs-g4-a"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "kestrel-systems",
+        "mockId": "pc-housing",
+        "seedId": "pc-housing-k"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "kestrel-systems",
+        "mockId": "pc-transport",
+        "seedId": "pc-transport-k"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "kestrel-systems",
+        "mockId": "pc-remote",
+        "seedId": "pc-remote-k"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "kestrel-systems",
+        "mockId": "pc-pension",
+        "seedId": "pc-pension-k"
+      },
+      {
+        "table": "PayComponent",
+        "organizationId": "kestrel-systems",
+        "mockId": "pc-hmo",
+        "seedId": "pc-hmo-k"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "kestrel-systems",
+        "mockId": "cs-g1",
+        "seedId": "cs-g1-k"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "kestrel-systems",
+        "mockId": "cs-g2",
+        "seedId": "cs-g2-k"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "kestrel-systems",
+        "mockId": "cs-g3",
+        "seedId": "cs-g3-k"
+      },
+      {
+        "table": "CompensationStructure",
+        "organizationId": "kestrel-systems",
+        "mockId": "cs-g4",
+        "seedId": "cs-g4-k"
+      }
+    ],
+    "communityPosts": [
+      {
+        "communityId": "com-builders",
+        "mockId": "p1",
+        "seedId": "com-builders-p1"
+      },
+      {
+        "communityId": "com-builders",
+        "mockId": "p2",
+        "seedId": "com-builders-p2"
+      },
+      {
+        "communityId": "com-creators",
+        "mockId": "p1",
+        "seedId": "com-creators-p1"
+      },
+      {
+        "communityId": "com-hr",
+        "mockId": "p1",
+        "seedId": "com-hr-p1"
+      },
+      {
+        "communityId": "com-learners",
+        "mockId": "p1",
+        "seedId": "com-learners-p1"
+      },
+      {
+        "communityId": "com-founders",
+        "mockId": "p1",
+        "seedId": "com-founders-p1"
+      }
+    ],
+    "activityRsvps": "employee id → membership id, for employees with an account."
+  }
+}
